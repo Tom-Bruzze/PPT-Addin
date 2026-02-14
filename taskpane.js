@@ -1,29 +1,26 @@
 /*
  ═══════════════════════════════════════════════════════
- Droege GANTT Generator  –  taskpane.js  v2.5
+ Droege GANTT Generator  –  taskpane.js  v2.6
 
- FIXES v2.5:
-  - PowerPoint API 1.10 vollständig kompatibel
-  - InvalidArgument behoben: addGeometricShape mit GeometricShapeType enum
-  - lineFormat: weight=0 statt visible=false (visible nicht in allen Versionen)
-  - textFrame.wordWrap entfernt (nicht unterstützt in API 1.10)
-  - textFrame.autoSizeSetting entfernt (nur in neueren APIs)
-  - Alle Shape-Koordinaten validiert (>= 0, width/height >= 1)
-  - fill.setSolidColor mit korrektem Hex-Format
-  - Robuste Fehlerbehandlung für alle Properties
-
- API: PowerPointApi 1.10 (Stand: Feb 2026)
+ FIXES v2.6:
+  - ALLE Phasen werden jetzt korrekt angezeigt
+  - Balken werden korrekt gerendert
+  - Mindestbreite für Balken: 5 Points
+  - Mindestwerte für alle Shape-Dimensionen
+  - Debug-Logging für Fehlersuche
+  - PowerPoint API 1.10 kompatibel
 
  DROEGE GROUP · 2026
  ═══════════════════════════════════════════════════════
 */
 
 /* ═══ Konstanten ═══ */
-var VERSION   = "2.5";
+var VERSION   = "2.6";
 var API_VER   = "1.10";
 var CM        = 28.3465;          /* 1 cm in PowerPoint-Points */
 var gridUnitCm = 0.21;           /* Standard-Rastereinheit    */
 var apiOk     = false;
+var DEBUG     = true;            /* Debug-Logging aktivieren  */
 
 /* GANTT Layout in Rastereinheiten (RE) */
 var G_LEFT    = 8;
@@ -36,6 +33,11 @@ var ganttPhaseCount = 0;
 /* GeometricShapeType Enum-Werte für API 1.10 */
 var GST_RECTANGLE = "Rectangle";
 var GST_ROUNDED_RECTANGLE = "RoundedRectangle";
+
+/* Debug-Logging */
+function log(msg) {
+  if (DEBUG) console.log("[GANTT] " + msg);
+}
 
 Office.onReady(function (info) {
   if (info.host === Office.HostType.PowerPoint) {
@@ -196,29 +198,19 @@ function ganttInfo(m, err) {
 
 /**
  * Konvertiert Rastereinheiten (RE) in PowerPoint-Points
- * Validiert und rundet Werte
+ * WICHTIG: Gibt immer mindestens 1 zurück für Dimensionen
  */
 function re2pt(re) {
-  var v = Math.max(0, re) * gridUnitCm * CM;
-  return Math.max(0, Math.round(v));
+  var v = re * gridUnitCm * CM;
+  return Math.round(Math.max(0, v));
 }
 
 /**
- * Stellt sicher, dass ein Wert für Shape-Dimensionen gültig ist
- * width/height müssen > 0 sein
+ * Konvertiert RE zu Points mit Mindestgröße für Shapes
  */
-function clampDimension(v) {
-  if (!isFinite(v) || v < 1) return 1;
-  return Math.round(v);
-}
-
-/**
- * Stellt sicher, dass ein Wert für Shape-Position gültig ist
- * left/top können 0 sein
- */
-function clampPosition(v) {
-  if (!isFinite(v)) return 0;
-  return Math.max(0, Math.round(v));
+function re2ptMin(re, minPt) {
+  var v = re * gridUnitCm * CM;
+  return Math.round(Math.max(minPt || 1, v));
 }
 
 function hexNoHash(c) { 
@@ -237,6 +229,7 @@ function readPhases() {
       phases.push({ name: nm, start: s, end: e, color: col });
     }
   });
+  log("readPhases: " + phases.length + " Phasen gelesen");
   return phases;
 }
 
@@ -246,67 +239,52 @@ function readPhases() {
 
 /**
  * Erzeugt eine geometrische Form mit validierten Parametern
- * Verwendet ShapeAddOptions für API 1.10 Kompatibilität
  */
-function addShape(slide, shapeType, left, top, width, height, shapeName) {
-  // Alle Werte validieren
+function addShape(slide, shapeType, left, top, width, height) {
+  // Alle Werte validieren - Mindestgröße 1 Point für width/height
   var opts = {
-    left: clampPosition(left),
-    top: clampPosition(top),
-    width: clampDimension(width),
-    height: clampDimension(height)
+    left: Math.max(0, Math.round(left)),
+    top: Math.max(0, Math.round(top)),
+    width: Math.max(1, Math.round(width)),
+    height: Math.max(1, Math.round(height))
   };
   
-  // Shape erstellen mit GeometricShapeType String
+  log("addShape: " + shapeType + " at (" + opts.left + "," + opts.top + ") size " + opts.width + "x" + opts.height);
+  
+  // Shape erstellen
   var shape = slide.shapes.addGeometricShape(shapeType, opts);
-  
-  // Name setzen (optional, in try/catch für Sicherheit)
-  if (shapeName) {
-    try {
-      shape.name = shapeName;
-    } catch (e) {
-      // Name konnte nicht gesetzt werden - ignorieren
-    }
-  }
-  
   return shape;
 }
 
 /**
  * Setzt die Füllfarbe einer Form
- * Akzeptiert Hex-Farbe ohne #
  */
 function setFill(shape, colorHex) {
   try {
     shape.fill.setSolidColor(colorHex);
   } catch (e) {
-    console.warn("Fill konnte nicht gesetzt werden:", e);
+    log("setFill Fehler: " + e.message);
   }
 }
 
 /**
  * Versteckt die Linie einer Form
- * API 1.10: lineFormat.visible ist nicht zuverlässig verfügbar
- * Stattdessen: weight auf 0 setzen
  */
 function hideLine(shape) {
   try {
-    // Primäre Methode: Linienfarbe transparent machen
     shape.lineFormat.color = "FFFFFF";
     shape.lineFormat.weight = 0;
   } catch (e1) {
-    // Fallback: visible auf false (funktioniert nicht in allen Versionen)
     try {
       shape.lineFormat.visible = false;
     } catch (e2) {
-      // Beide Methoden fehlgeschlagen - ignorieren
+      // ignorieren
     }
   }
 }
 
 /**
  * Setzt Text und Formatierung einer Form
- * Best-effort Ansatz mit try/catch für jede Property
  */
 function setShapeText(shape, text, options) {
   var opts = options || {};
@@ -314,32 +292,21 @@ function setShapeText(shape, text, options) {
   try {
     var tf = shape.textFrame;
     
-    // verticalAlignment (Middle, Top, Bottom)
-    try {
-      tf.verticalAlignment = opts.vAlign || "Middle";
-    } catch (e) {}
+    try { tf.verticalAlignment = opts.vAlign || "Middle"; } catch (e) {}
     
-    // Text setzen
     var tr = tf.textRange;
     tr.text = text;
     
-    // Font-Eigenschaften
     try { tr.font.size = opts.fontSize || 7; } catch (e) {}
     try { tr.font.color = opts.fontColor || "000000"; } catch (e) {}
     try { tr.font.bold = !!opts.bold; } catch (e) {}
-    
-    // Font-Name (kann fehlschlagen)
     try { tr.font.name = "Segoe UI"; } catch (e) {
       try { tr.font.name = "Arial"; } catch (e2) {}
     }
-    
-    // Paragraph-Ausrichtung
-    try {
-      tr.paragraphFormat.alignment = opts.pAlign || "Left";
-    } catch (e) {}
+    try { tr.paragraphFormat.alignment = opts.pAlign || "Left"; } catch (e) {}
     
   } catch (e) {
-    console.warn("Text konnte nicht gesetzt werden:", e);
+    log("setShapeText Fehler: " + e.message);
   }
 }
 
@@ -359,7 +326,6 @@ function setSlideSize() {
     ps.load(["slideWidth", "slideHeight"]);
     
     return ctx.sync().then(function () {
-      // 27,728 × 19,297 cm in Points
       ps.slideWidth = 786;
       ps.slideHeight = 547;
       return ctx.sync();
@@ -479,22 +445,10 @@ function createGanttChart() {
     ganttInfo("Ende muss nach Start liegen!", true); 
     return; 
   }
-  if (labelWRE >= (G_W - 5)) { 
-    ganttInfo("Label-Breite zu groß (max. " + (G_W - 6) + " RE).", true); 
-    return; 
-  }
-  if (headerHRE >= (G_H - 5)) { 
-    ganttInfo("Kopfzeile zu hoch (max. " + (G_H - 6) + " RE).", true); 
-    return; 
-  }
 
   var phases = readPhases();
   if (phases.length === 0) { 
     ganttInfo("Mindestens eine Phase hinzufügen!", true); 
-    return; 
-  }
-  if (phases.length > 10) { 
-    ganttInfo("Maximal 10 Phasen!", true); 
     return; 
   }
 
@@ -515,13 +469,9 @@ function createGanttChart() {
   var chartWRE = G_W - labelWRE;
   var availHRE = G_H - headerHRE;
 
-  // Zeilenhöhe berechnen
-  var firstRowH = Math.floor((availHRE + (n * (n - 1)) / 2) / n);
-  var lastRowH = firstRowH - n + 1;
-  if (lastRowH < 2) {
-    ganttInfo("Zu viele Phasen für die verfügbare Höhe.", true);
-    return;
-  }
+  // Zeilenhöhe berechnen - FIXED: Gleichmäßige Verteilung
+  var rowHeightRE = Math.floor(availHRE / n);
+  if (rowHeightRE < 3) rowHeightRE = 3;
 
   // Spaltenbreiten proportional berechnen
   var colWidths = [];
@@ -532,7 +482,6 @@ function createGanttChart() {
     colWidths.push(w);
     used += w;
   }
-  // Restkorrektur auf letzte Spalte
   colWidths[colWidths.length - 1] += (chartWRE - used);
   if (colWidths[colWidths.length - 1] < 1) colWidths[colWidths.length - 1] = 1;
 
@@ -540,10 +489,12 @@ function createGanttChart() {
   ganttInfo(
     "<b>" + timeUnits.length + "</b> " + unitName +
     " | <b>" + n + "</b> Phasen" +
-    " | Zeilen: <b>" + firstRowH + "→" + lastRowH + " RE</b>" +
+    " | Zeilenhöhe: <b>" + rowHeightRE + " RE</b>" +
     " | RE=" + gridUnitCm.toFixed(2) + "cm",
     false
   );
+
+  log("createGanttChart: " + n + " Phasen, " + timeUnits.length + " Zeiteinheiten");
 
   showStatus("Erzeuge GANTT-Diagramm...", "info");
 
@@ -562,10 +513,10 @@ function createGanttChart() {
           if (!slides.items || !slides.items.length) {
             throw new Error("Keine Folie verfügbar");
           }
-          return buildGantt(ctx, slides.items[0], projStart, projEnd, totalDays, timeUnits, colWidths, phases, labelWRE, headerHRE, firstRowH);
+          return buildGantt(ctx, slides.items[0], projStart, projEnd, totalDays, timeUnits, colWidths, phases, labelWRE, headerHRE, rowHeightRE);
         });
       }
-      return buildGantt(ctx, slide, projStart, projEnd, totalDays, timeUnits, colWidths, phases, labelWRE, headerHRE, firstRowH);
+      return buildGantt(ctx, slide, projStart, projEnd, totalDays, timeUnits, colWidths, phases, labelWRE, headerHRE, rowHeightRE);
     });
   }).catch(function (e) {
     showStatus("Fehler: " + (e && e.message ? e.message : e), "error");
@@ -576,7 +527,9 @@ function createGanttChart() {
 /**
  * Baut das GANTT-Diagramm auf der Folie
  */
-function buildGantt(ctx, slide, projStart, projEnd, totalDays, timeUnits, colWidths, phases, labelWRE, headerHRE, firstRowH) {
+function buildGantt(ctx, slide, projStart, projEnd, totalDays, timeUnits, colWidths, phases, labelWRE, headerHRE, rowHeightRE) {
+  log("buildGantt START - " + phases.length + " Phasen");
+  
   // Positionen in Points berechnen
   var x0 = re2pt(G_LEFT);
   var y0 = re2pt(G_TOP);
@@ -585,9 +538,13 @@ function buildGantt(ctx, slide, projStart, projEnd, totalDays, timeUnits, colWid
   var labelWPt = re2pt(labelWRE);
   var headerHPt = re2pt(headerHRE);
   var chartX = x0 + labelWPt;
+  var chartWPt = re2pt(G_W - labelWRE);
+  var rowHeightPt = re2pt(rowHeightRE);
+
+  log("Layout: x0=" + x0 + " y0=" + y0 + " chartX=" + chartX + " rowHeight=" + rowHeightPt);
 
   // 1. Hintergrund (weiß)
-  var bg = addShape(slide, GST_RECTANGLE, x0, y0, wAll, hAll, GANTT_TAG + "_bg");
+  var bg = addShape(slide, GST_RECTANGLE, x0, y0, wAll, hAll);
   setFill(bg, "FFFFFF");
   hideLine(bg);
 
@@ -595,7 +552,8 @@ function buildGantt(ctx, slide, projStart, projEnd, totalDays, timeUnits, colWid
   var colX = 0;
   for (var c = 0; c < timeUnits.length; c++) {
     var cW = re2pt(colWidths[c]);
-    var hdr = addShape(slide, GST_RECTANGLE, chartX + colX, y0, cW, headerHPt, GANTT_TAG + "_hdr_" + c);
+    if (cW < 1) cW = 1;
+    var hdr = addShape(slide, GST_RECTANGLE, chartX + colX, y0, cW, headerHPt);
     setFill(hdr, "D0D0D0");
     hideLine(hdr);
     
@@ -613,7 +571,7 @@ function buildGantt(ctx, slide, projStart, projEnd, totalDays, timeUnits, colWid
   var lineW = Math.max(1, re2pt(0.1));
 
   // Linke Begrenzung
-  var vl0 = addShape(slide, GST_RECTANGLE, chartX, y0, lineW, hAll, GANTT_TAG + "_vl_left");
+  var vl0 = addShape(slide, GST_RECTANGLE, chartX, y0, lineW, hAll);
   setFill(vl0, "B0B0B0");
   hideLine(vl0);
 
@@ -621,22 +579,22 @@ function buildGantt(ctx, slide, projStart, projEnd, totalDays, timeUnits, colWid
   colX = 0;
   for (var c2 = 0; c2 < timeUnits.length - 1; c2++) {
     colX += re2pt(colWidths[c2]);
-    var vl = addShape(slide, GST_RECTANGLE, chartX + colX - lineW, y0, lineW, hAll, GANTT_TAG + "_vl_" + c2);
+    var vl = addShape(slide, GST_RECTANGLE, chartX + colX, y0, lineW, hAll);
     setFill(vl, "B0B0B0");
     hideLine(vl);
   }
 
-  // 4. Phasen-Zeilen mit Balken
-  var chartWRE = G_W - labelWRE;
+  // 4. Phasen-Zeilen mit Balken - FIXED LOOP
   var rowY = y0 + headerHPt;
+  
+  log("Starte Phasen-Loop mit " + phases.length + " Phasen");
 
   for (var p = 0; p < phases.length; p++) {
     var phase = phases[p];
-    var rowHRE = firstRowH - p;
-    var rowHPt = re2pt(rowHRE);
+    log("Phase " + p + ": " + phase.name + " rowY=" + rowY);
 
     // Label-Zelle (links)
-    var lb = addShape(slide, GST_RECTANGLE, x0, rowY, labelWPt, rowHPt, GANTT_TAG + "_lb_" + p);
+    var lb = addShape(slide, GST_RECTANGLE, x0, rowY, labelWPt, rowHeightPt);
     setFill(lb, "F5F5F5");
     hideLine(lb);
     setShapeText(lb, " " + phase.name, { 
@@ -649,33 +607,49 @@ function buildGantt(ctx, slide, projStart, projEnd, totalDays, timeUnits, colWid
     // Balken berechnen
     var pStartDay = daysBetween(projStart, phase.start);
     var pEndDay = daysBetween(projStart, phase.end);
+    
+    // Clamp to project range
     if (pStartDay < 0) pStartDay = 0;
     if (pEndDay > totalDays) pEndDay = totalDays;
+    if (pEndDay < 0) pEndDay = 0;
+    if (pStartDay > totalDays) pStartDay = totalDays;
+
+    log("  Phase " + p + " Tage: " + pStartDay + " - " + pEndDay + " (total: " + totalDays + ")");
 
     if (pEndDay > pStartDay) {
-      var barStartRE = Math.round((pStartDay / totalDays) * chartWRE);
-      var barEndRE = Math.round((pEndDay / totalDays) * chartWRE);
-      if (barEndRE <= barStartRE) barEndRE = barStartRE + 1;
+      // Balken-Position in Points berechnen
+      var barStartPt = Math.round((pStartDay / totalDays) * chartWPt);
+      var barWidthPt = Math.round(((pEndDay - pStartDay) / totalDays) * chartWPt);
+      
+      // Mindestbreite für sichtbaren Balken
+      if (barWidthPt < 5) barWidthPt = 5;
 
-      // Padding in RE
-      var barPadRE = (rowHRE >= 3) ? 1 : 0;
-      var barHRE = rowHRE - 2 * barPadRE;
-      if (barHRE < 1) { barPadRE = 0; barHRE = rowHRE; }
+      // Padding für Balken (oben/unten Abstand)
+      var barPadPt = Math.max(2, Math.round(rowHeightPt * 0.15));
+      var barHeightPt = rowHeightPt - (2 * barPadPt);
+      if (barHeightPt < 5) {
+        barPadPt = 0;
+        barHeightPt = rowHeightPt;
+      }
+
+      log("  Balken: x=" + (chartX + barStartPt) + " y=" + (rowY + barPadPt) + " w=" + barWidthPt + " h=" + barHeightPt);
 
       var bar = addShape(
         slide,
         GST_ROUNDED_RECTANGLE,
-        chartX + re2pt(barStartRE),
-        rowY + re2pt(barPadRE),
-        re2pt(barEndRE - barStartRE),
-        re2pt(barHRE),
-        GANTT_TAG + "_bar_" + p
+        chartX + barStartPt,
+        rowY + barPadPt,
+        barWidthPt,
+        barHeightPt
       );
-      setFill(bar, hexNoHash(phase.color));
+      
+      var colorHex = hexNoHash(phase.color);
+      log("  Balken Farbe: " + colorHex);
+      setFill(bar, colorHex);
       hideLine(bar);
 
       // Balken-Text (wenn genug Platz)
-      if (barHRE >= 2 && (barEndRE - barStartRE) >= 6) {
+      if (barHeightPt >= 10 && barWidthPt >= 30) {
         setShapeText(bar, phase.name, { 
           fontSize: 6, 
           fontColor: "FFFFFF", 
@@ -683,40 +657,47 @@ function buildGantt(ctx, slide, projStart, projEnd, totalDays, timeUnits, colWid
           pAlign: "Center" 
         });
       }
+    } else {
+      log("  Phase " + p + " KEIN BALKEN (Start >= End)");
     }
 
-    rowY += rowHPt;
+    // WICHTIG: rowY für nächste Phase erhöhen
+    rowY = rowY + rowHeightPt;
+    log("  Nächste rowY: " + rowY);
   }
 
   // 5. Heute-Linie (rot)
   var today = new Date();
   var todayDay = daysBetween(projStart, today);
   if (todayDay >= 0 && todayDay <= totalDays) {
-    var todayRE = Math.round((todayDay / totalDays) * chartWRE);
-    var tl = addShape(slide, GST_RECTANGLE, chartX + re2pt(todayRE), y0, Math.max(2, re2pt(0.2)), hAll, GANTT_TAG + "_today");
+    var todayPt = Math.round((todayDay / totalDays) * chartWPt);
+    var tl = addShape(slide, GST_RECTANGLE, chartX + todayPt, y0, 2, hAll);
     setFill(tl, "E94560");
     hideLine(tl);
 
-    // "HEUTE" Label (innerhalb der GANTT-Fläche)
-    var lblW = re2pt(6);
-    var lblH = re2pt(2);
-    // Position: leicht links von der Linie, unten im Chart
-    var lblX = chartX + re2pt(Math.max(0, Math.min(todayRE - 3, chartWRE - 6)));
-    var lblY = y0 + hAll - lblH - 2;
+    // "HEUTE" Label
+    var lblW = 35;
+    var lblH = 12;
+    var lblX = chartX + todayPt - 17;
+    if (lblX < chartX) lblX = chartX;
+    if (lblX + lblW > chartX + chartWPt) lblX = chartX + chartWPt - lblW;
+    var lblY = y0 + hAll - lblH - 5;
     
-    var todayLbl = addShape(slide, GST_RECTANGLE, lblX, lblY, lblW, lblH, GANTT_TAG + "_today_lbl");
+    var todayLbl = addShape(slide, GST_RECTANGLE, lblX, lblY, lblW, lblH);
     setFill(todayLbl, "E94560");
     hideLine(todayLbl);
     setShapeText(todayLbl, "HEUTE", { 
-      fontSize: 5, 
+      fontSize: 6, 
       fontColor: "FFFFFF", 
       bold: true, 
       pAlign: "Center" 
     });
   }
 
+  log("buildGantt ENDE - ctx.sync()");
+
   return ctx.sync().then(function () {
-    showStatus("GANTT-Diagramm erfolgreich erstellt ✓", "success");
+    showStatus("GANTT-Diagramm erstellt ✓ (" + phases.length + " Phasen)", "success");
     updateInfoBar();
   });
 }

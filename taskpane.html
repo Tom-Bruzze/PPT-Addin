@@ -5,100 +5,107 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Droege GANTT Generator</title>
   <link rel="stylesheet" href="taskpane.css">
-  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <script src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
 </head>
 <body>
-
-<div class="app">
-
-  <!-- HEADER -->
-  <div class="hdr">
-    <span class="logo">&#x1F4CA;</span>
-    <div>
-      <strong>GANTT Generator</strong><br>
-      <span class="sub">by Droege Group</span>
+  <!-- ═══ HEADER ═══ -->
+  <header class="header">
+    <div class="logo">
+      <svg viewBox="0 0 40 40" width="32" height="32">
+        <rect x="2" y="2" width="36" height="36" rx="4" fill="#1a1a2e"/>
+        <rect x="6" y="10" width="20" height="4" rx="1" fill="#e94560"/>
+        <rect x="10" y="18" width="24" height="4" rx="1" fill="#0f3460"/>
+        <rect x="8" y="26" width="18" height="4" rx="1" fill="#16213e"/>
+      </svg>
+      <div class="logo-text">
+        <span class="logo-title">GANTT Generator</span>
+        <span class="logo-sub">DROEGE GROUP</span>
+      </div>
     </div>
-  </div>
-
-  <!-- STATUS -->
-  <div id="status" class="sts">Bereit</div>
-
-  <!-- RASTEREINHEIT -->
-  <div class="sec">
-    <div class="sec-head">Rastereinheit <span class="hint">(RE = Basis f&uuml;r alle Ma&szlig;e)</span></div>
-    <div class="grid-bar">
-      <label>RE</label>
-      <button class="pre active" data-value="0.21">0,21</button>
-      <button class="pre" data-value="0.42">0,42</button>
-      <button class="pre" data-value="0.63">0,63</button>
-      <button class="pre" data-value="2.10">2,10</button>
-      <input type="number" id="gridUnit" value="0.21" step="0.01" min="0.01" max="5">
-      <span class="cm">cm</span>
+    <div class="info-bar">
+      <span id="infoDateTime">--</span>
+      <span id="infoVersion">v2.6</span>
+      <span id="infoApi">API 1.10</span>
     </div>
-  </div>
+  </header>
 
-  <!-- GANTT-DIAGRAMM -->
-  <div class="sec">
-    <div class="sec-head">Gantt-Diagramm</div>
+  <!-- ═══ MAIN ═══ -->
+  <main class="main">
+    
+    <!-- Rastereinheit -->
+    <section class="card">
+      <h2>Rastereinheit (RE)</h2>
+      <div class="re-row">
+        <input type="number" id="gridUnit" value="0.21" min="0.05" max="1" step="0.01">
+        <span class="unit">cm</span>
+      </div>
+      <div class="presets">
+        <button class="pre active" data-value="0.21">0,21</button>
+        <button class="pre" data-value="0.25">0,25</button>
+        <button class="pre" data-value="0.30">0,30</button>
+        <button class="pre" data-value="0.35">0,35</button>
+      </div>
+    </section>
 
-    <div class="gantt-row">
-      <label>Von</label>
-      <input type="date" id="ganttStart">
-      <label>Bis</label>
-      <input type="date" id="ganttEnd">
-    </div>
+    <!-- Folienformat -->
+    <section class="card">
+      <h2>Folienformat</h2>
+      <p class="hint">Setzt das Format auf 27,728 × 19,297 cm</p>
+      <button id="setSlide" class="btn primary full">Format setzen</button>
+    </section>
 
-    <div class="gantt-row">
-      <label>Einheit</label>
-      <select id="ganttUnit">
-        <option value="day">Tage</option>
-        <option value="week">Kalenderwochen</option>
-        <option value="month" selected>Monate</option>
-        <option value="quarter">Quartale</option>
-      </select>
-    </div>
+    <!-- GANTT Einstellungen -->
+    <section class="card gantt-card">
+      <h2>GANTT-Diagramm</h2>
+      
+      <div class="form-row">
+        <label>Projektzeitraum</label>
+        <div class="date-row">
+          <input type="date" id="ganttStart">
+          <span>–</span>
+          <input type="date" id="ganttEnd">
+        </div>
+      </div>
 
-    <div class="gantt-row">
-      <label>Label</label>
-      <input type="number" id="ganttLabelW" value="20" min="5" max="40" title="Breite der Beschriftungsspalte in RE">
-      <span class="cm">RE</span>
-      <label>Kopf</label>
-      <input type="number" id="ganttHeaderH" value="3" min="2" max="6" title="H&ouml;he der Kopfzeile in RE">
-      <span class="cm">RE</span>
-    </div>
+      <div class="form-row">
+        <label>Zeiteinheit</label>
+        <select id="ganttUnit">
+          <option value="day">Tage</option>
+          <option value="week" selected>Kalenderwochen</option>
+          <option value="month">Monate</option>
+          <option value="quarter">Quartale</option>
+        </select>
+      </div>
 
-    <div class="gantt-phases-head">
-      <span>Phasen <span class="hint">(max. 10)</span></span>
-      <button id="ganttAddPhase" class="gantt-add" title="Phase hinzuf&uuml;gen">+ Phase</button>
-    </div>
-    <div id="ganttPhases" class="gantt-phases"></div>
+      <div class="form-row inline">
+        <div>
+          <label>Label-Breite (RE)</label>
+          <input type="number" id="ganttLabelW" value="20" min="5" max="50">
+        </div>
+        <div>
+          <label>Kopfzeile (RE)</label>
+          <input type="number" id="ganttHeaderH" value="3" min="2" max="10">
+        </div>
+      </div>
 
-    <button id="createGantt" class="sq-wide teal" style="margin-top:8px">
-      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
-      Gantt erzeugen
-    </button>
+      <div class="phases-header">
+        <label>Phasen</label>
+        <button id="ganttAddPhase" class="btn small">+ Phase</button>
+      </div>
+      <div id="ganttPhases" class="gantt-phases"></div>
 
-    <div id="ganttInfo" class="gantt-info"></div>
-  </div>
+      <div id="ganttInfo" class="gantt-info"></div>
 
-  <!-- PAPIERFORMAT -->
-  <div class="sec">
-    <div class="sec-head">Papierformat</div>
-    <button id="setSlide" class="sq-wide blu-d">
-      <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M8 3v18M16 3v18M2 12h20"/></svg>
-      27,728 &times; 19,297 cm
-    </button>
-  </div>
+      <button id="createGantt" class="btn accent full">GANTT erstellen</button>
+    </section>
 
-  <!-- INFO-BAR -->
-  <div class="info-bar" id="infoBar">
-    <span id="infoDateTime">--</span> &middot;
-    <span id="infoVersion">v2.3</span> &middot;
-    <span id="infoApi">API --</span>
-  </div>
+  </main>
 
-</div>
+  <!-- ═══ FOOTER ═══ -->
+  <footer class="footer">
+    <div id="status" class="sts info">Bereit</div>
+  </footer>
 
-<script src="taskpane.js"></script>
+  <script src="taskpane.js"></script>
 </body>
 </html>
