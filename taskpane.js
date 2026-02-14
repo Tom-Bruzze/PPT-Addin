@@ -190,16 +190,19 @@ function getPhases() {
     for (var i = 1; i <= phaseCount; i++) {
         var row = document.getElementById("phase_" + i);
         if (!row) continue;
-        var name  = row.querySelector(".phase-name").value  || ("Phase " + i);
+        var name  = row.querySelector(".phase-name").value || ("Phase " + i);
         var start = row.querySelector(".phase-start").value;
         var end   = row.querySelector(".phase-end").value;
-        var color = row.querySelector(".phase-color").value;
+        var raw   = row.querySelector(".phase-color").value || "#2471A3";
         if (!start || !end) continue;
+        /* Farbe normalisieren: # entfernen, uppercase, 6-stellig */
+        var hex = raw.replace(/^#/, "").toUpperCase();
+        if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
         phases.push({
             name:  name,
             start: new Date(start),
             end:   new Date(end),
-            color: color.replace("#", "")  /* FIX: # entfernen für setSolidColor */
+            color: hex
         });
     }
     return phases;
@@ -420,7 +423,7 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
     bg.top    = re2pt(y0);
     bg.width  = re2pt(bgW);
     bg.height = re2pt(bgH);
-    bg.fill.setSolidColor("F5F5F5");
+    bg.fill.setSolidColor("FFFFFF");
     bg.lineFormat.visible = false;
     bg.name = "GANTT_BG";
 
