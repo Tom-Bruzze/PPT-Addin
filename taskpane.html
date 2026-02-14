@@ -1,100 +1,122 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <title>Droege GANTT Generator</title>
-    <link rel="stylesheet" href="taskpane.css">
-    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Droege GANTT Generator</title>
+  <link rel="stylesheet" href="taskpane.css">
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
 </head>
 <body>
+
 <div class="app">
 
-    <div class="hdr">
-        <span class="logo">&#9638;</span>
-        <div>
-            <div class="title"><b>GANTT Generator</b> by Droege Group</div>
-            <div class="build">Build 14.02.2026 v10</div>
-        </div>
+  <!-- HEADER -->
+  <div class="hdr">
+    <span class="logo">📊</span>
+    <div>
+      <strong>GANTT Generator</strong><br>
+      <span class="sub">by Droege Group</span>
+    </div>
+  </div>
+
+  <!-- STATUS -->
+  <div id="status" class="sts">Bereit</div>
+
+  <!-- RASTEREINHEIT -->
+  <div class="sec">
+    <div class="sec-head">Rastereinheit <span class="hint">(RE = Basis für alle Maße)</span></div>
+    <div class="grid-bar">
+      <label>RE</label>
+      <button class="pre active" data-value="0.21">0,21</button>
+      <button class="pre" data-value="0.42">0,42</button>
+      <button class="pre" data-value="0.63">0,63</button>
+      <button class="pre" data-value="2.10">2,10</button>
+      <input type="number" id="gridUnit" value="0.21" step="0.01" min="0.01" max="5">
+      <span class="cm">cm</span>
+    </div>
+  </div>
+
+  <!-- GANTT-DIAGRAMM -->
+  <div class="sec">
+    <div class="sec-head">Gantt-Diagramm</div>
+
+    <!-- Zeitraum -->
+    <div class="gantt-row">
+      <label>Von</label>
+      <input type="date" id="ganttStart">
+      <label>Bis</label>
+      <input type="date" id="ganttEnd">
     </div>
 
-    <div class="re-sec">
-        <span class="lbl">RE</span>
-        <button class="pre active" data-v="0.21" type="button">0,21</button>
-        <button class="pre" data-v="0.42" type="button">0,42</button>
-        <button class="pre" data-v="0.63" type="button">0,63</button>
-        <button class="pre" data-v="2.10" type="button">2,10</button>
-        <span class="unit">cm</span>
+    <!-- Einheit + Label-Breite -->
+    <div class="gantt-row">
+      <label>Einheit</label>
+      <select id="ganttUnit">
+        <option value="week">Wochen</option>
+        <option value="month" selected>Monate</option>
+        <option value="quarter">Quartale</option>
+      </select>
+      <label>Label-B</label>
+      <input type="number" id="ganttLabelW" value="20" min="5" max="40" title="Breite der Beschriftungsspalte in RE">
+      <span class="cm">RE</span>
     </div>
 
-    <div id="status" class="sts info">Bereit</div>
-
-    <div class="sec">
-        <button class="sec-hdr" type="button" onclick="toggleSection(this)">
-            <span class="sec-title">Zeitraum & Einheit</span>
-            <span class="sec-toggle"></span>
-        </button>
-        <div class="sec-body">
-            <div class="form-row"><span class="form-lbl">Start</span><input id="startDate" class="form-input" type="date"></div>
-            <div class="form-row"><span class="form-lbl">Ende</span><input id="endDate" class="form-input" type="date"></div>
-            <div class="form-row"><span class="form-lbl">Einheit</span>
-                <select id="timeUnit" class="form-input">
-                    <option value="days">Tage</option>
-                    <option value="weeks" selected>Wochen (KW)</option>
-                    <option value="months">Monate</option>
-                    <option value="quarters">Quartale</option>
-                </select>
-            </div>
-        </div>
+    <!-- Phasen -->
+    <div class="gantt-phases-head">
+      <span>Phasen</span>
+      <button id="ganttAddPhase" class="gantt-add" title="Phase hinzufügen">+ Phase</button>
+    </div>
+    <div id="ganttPhases" class="gantt-phases">
+      <!-- Phasen werden per JS eingefügt -->
     </div>
 
-    <div class="sec">
-        <button class="sec-hdr" type="button" onclick="toggleSection(this)">
-            <span class="sec-title">Position & Größe (RE)</span>
-            <span class="sec-toggle"></span>
-        </button>
-        <div class="sec-body">
-            <div class="form-row"><span class="form-lbl">Links</span><input id="ganttLeft" class="form-input" type="number" min="0" value="8"></div>
-            <div class="form-row"><span class="form-lbl">Oben</span><input id="ganttTop" class="form-input" type="number" min="0" value="17"></div>
-            <div class="form-row"><span class="form-lbl">Max Breite</span><input id="ganttMaxW" class="form-input" type="number" min="10" value="118"></div>
-            <div class="form-row"><span class="form-lbl">Max Höhe</span><input id="ganttMaxH" class="form-input" type="number" min="10" value="69"></div>
-            <div class="form-row"><span class="form-lbl">Zeilenhöhe</span><input id="rowHeightRE" class="form-input" type="number" min="2" value="4"></div>
-            <div class="form-row"><span class="form-lbl">Balkenhöhe</span><input id="barHeightRE" class="form-input" type="number" min="1" value="3"></div>
-        </div>
+    <!-- Optionen -->
+    <div class="gantt-row" style="margin-top:6px">
+      <label class="gantt-cb-label">
+        <input type="checkbox" id="ganttHeader" checked> Kopfzeile
+      </label>
+      <label class="gantt-cb-label">
+        <input type="checkbox" id="ganttToday"> Heute-Linie
+      </label>
     </div>
 
-    <div class="sec">
-        <button class="sec-hdr" type="button" onclick="toggleSection(this)">
-            <span class="sec-title">Optionen</span>
-            <span class="sec-toggle"></span>
-        </button>
-        <div class="sec-body">
-            <div class="cb-row"><input type="checkbox" id="showHeader" checked><label for="showHeader">Header-Zeile</label></div>
-            <div class="cb-row"><input type="checkbox" id="showLabels" checked><label for="showLabels">Phasen-Labels links</label></div>
-            <div class="cb-row"><input type="checkbox" id="showGridLines" checked><label for="showGridLines">Rasterlinien</label></div>
-            <div class="cb-row"><input type="checkbox" id="showToday" checked><label for="showToday">Heute-Linie</label></div>
-        </div>
+    <!-- Farben -->
+    <div class="gantt-row">
+      <label>Balken</label>
+      <input type="color" id="ganttBarColor" value="#2e86c1" class="gantt-color">
+      <label>Kopf</label>
+      <input type="color" id="ganttHeadColor" value="#1a5276" class="gantt-color">
+      <label>Zeile</label>
+      <input type="color" id="ganttRowColor" value="#f0f0f0" class="gantt-color">
     </div>
 
-    <div class="sec">
-        <button class="sec-hdr" type="button" onclick="toggleSection(this)">
-            <span class="sec-title">Phasen</span>
-            <span class="sec-toggle"></span>
-        </button>
-        <div class="sec-body">
-            <div id="phaseContainer"></div>
-            <div class="phase-actions">
-                <button id="addPhase" class="btn-phase" type="button">+</button>
-                <button id="removePhase" class="btn-phase" type="button">−</button>
-            </div>
-        </div>
-    </div>
+    <!-- Erzeugen-Button -->
+    <button id="createGantt" class="sq-wide teal" style="margin-top:6px">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+      Gantt erzeugen
+    </button>
 
-    <div class="footer">
-        <button id="generateGantt" class="btn-main" type="button">GANTT-Diagramm erstellen</button>
-    </div>
+    <!-- Info -->
+    <div id="ganttInfo" class="gantt-info"></div>
+  </div>
+
+  <!-- PAPIERFORMAT -->
+  <div class="sec">
+    <div class="sec-head">Papierformat</div>
+    <button id="setSlide" class="sq-wide blu-d">
+      <svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M8 3v18M16 3v18M2 12h20"/></svg>
+      27,728 × 19,297 cm
+    </button>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    DROEGE GROUP · GANTT Generator v2.0
+  </div>
 
 </div>
+
 <script src="taskpane.js"></script>
 </body>
 </html>

@@ -1,157 +1,96 @@
-/* DROEGE GANTT Generator – taskpane.css  Build 14.02.2026 v10 */
+/* ===== Droege GANTT Generator CSS ===== */
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:#1a1a2e;color:#e0e0e0;font-size:12px;overflow-y:auto;min-height:100vh}
-.app{max-width:280px;margin:0 auto;padding:5px 6px}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#1a1a2e;color:#e0e0e0;font-size:13px;overflow-y:auto;min-height:100vh}
+.app{max-width:400px;margin:0 auto;padding:8px}
 
 /* HEADER */
-.hdr{display:flex;align-items:center;gap:5px;padding:3px 0 2px}
-.logo{font-size:16px;color:#e94560}
-.title{font-size:10px;color:#e0e0e0;line-height:1.2}
-.build{font-size:7px;color:#5a6a8a;margin-top:1px}
-
-/* RE PRESETS */
-.re-sec{display:flex;align-items:center;gap:2px;padding:2px 0}
-.lbl{font-size:9px;color:#8899aa;font-weight:600}
-.pre{padding:1px 4px;border:1px solid #2a2a4a;background:#16213e;color:#8899aa;border-radius:3px;cursor:pointer;font-size:9px;transition:all .12s}
-.pre:hover{color:#e94560;border-color:#e94560}
-.pre.active{background:#e94560;color:#fff;border-color:#e94560}
-.unit{font-size:7px;color:#5a6a8a;margin-left:1px}
+.hdr{display:flex;align-items:center;gap:8px;padding:8px 12px;background:linear-gradient(135deg,#16213e,#0f3460);border-radius:8px;margin-bottom:6px}
+.logo{font-size:22px;color:#e94560}
+.hdr strong{font-size:14px;color:#fff;letter-spacing:.5px}
+.sub{font-size:9px;color:#7a8ba6;font-weight:400}
 
 /* STATUS */
-.sts{padding:2px 5px;border-radius:3px;font-size:8px;font-weight:600;text-align:center;margin:2px 0}
-.sts.info{background:#0a0e1a;color:#5a8abf}
-.sts.success{background:#0b2e1a;color:#2ecc71}
-.sts.error{background:#2e0a0a;color:#e74c3c}
-.sts.warning{background:#2e2a0a;color:#f39c12}
+.sts{padding:5px 8px;border-radius:6px;font-size:10px;font-weight:600;text-align:center;color:#fff;margin-bottom:6px;background:#2a3a5c;min-height:24px;display:flex;align-items:center;justify-content:center}
+.sts.success{background:#27ae60}
+.sts.error{background:#e74c3c}
+.sts.warning{background:#f39c12}
+.sts.info{background:#3498db}
+
+/* RASTEREINHEIT */
+.grid-bar{display:flex;align-items:center;gap:3px;padding:5px 8px;background:#16213e;border-radius:7px;margin-bottom:6px}
+.grid-bar label{font-weight:700;font-size:10px;color:#e94560;margin-right:2px;min-width:16px}
+.pre{padding:4px 7px;border:1px solid #2a3a5c;background:#0f3460;color:#8899b3;border-radius:4px;cursor:pointer;font-size:10px;font-weight:600;transition:all .15s}
+.pre:hover{border-color:#e94560;color:#e94560}
+.pre.active{background:#e94560;color:#fff;border-color:#e94560}
+.grid-bar input{width:48px;padding:4px 5px;border:1px solid #2a3a5c;background:#0a0e1a;color:#fff;border-radius:4px;font-size:11px;font-weight:600;text-align:center}
+.grid-bar input:focus{outline:none;border-color:#e94560}
+.cm{font-size:9px;color:#5a6a8a}
 
 /* SECTIONS */
-.sec{background:#16213e;border-radius:4px;padding:3px 5px;margin-bottom:3px}
-.sec-hdr{width:100%;display:flex;align-items:center;gap:3px;cursor:pointer;user-select:none;padding:1px 0;background:none;border:none;text-align:left}
-.sec-hdr:hover .sec-title{color:#ff6b81}
-.sec-title{font-size:9px;font-weight:700;color:#e94560;text-transform:uppercase;letter-spacing:.3px}
-.sec-toggle{margin-left:auto;font-size:8px;color:#5a6a8a}
-.sec-toggle::after{content:'▾'}
-.sec-hdr.is-collapsed .sec-toggle::after{content:'▸'}
-.sec-body{padding:2px 0 0}
-.sec-body.collapsed{display:none}
+.sec{background:#16213e;border-radius:7px;padding:7px 10px;margin-bottom:5px}
+.sec-head{font-size:10px;font-weight:700;text-transform:uppercase;color:#e94560;letter-spacing:.5px;margin-bottom:5px;display:flex;align-items:center;gap:6px}
+.hint{font-size:9px;font-weight:400;color:#5a6a8a;text-transform:none;letter-spacing:0}
 
-/* FORM */
-.form-row{display:flex;align-items:center;justify-content:space-between;gap:3px;padding:1px 0}
-.form-lbl{font-size:8px;color:#8899aa;font-weight:600;white-space:nowrap}
-.form-input{
-  width:110px;padding:2px 3px;
-  background:#0a0e1a;border:1px solid #2a2a4a;color:#e0e0e0;
-  border-radius:3px;font-size:9px;text-align:center;
+/* WIDE BUTTONS */
+.sq-wide{
+  width:100%;padding:7px 12px;
+  border:none;border-radius:6px;cursor:pointer;
+  display:flex;align-items:center;gap:8px;
+  color:#fff;font-size:11px;font-weight:600;transition:all .12s;
 }
-.form-input:focus{border-color:#e94560;outline:none}
-select.form-input{cursor:pointer;text-align:left;padding:2px 2px}
-select.form-input option{background:#0a0e1a;color:#e0e0e0}
+.sq-wide svg{width:16px;height:16px;flex-shrink:0;fill:none;stroke:#fff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.sq-wide:active{transform:scale(.98)}
 
-/* CHECKBOXES */
-.cb-row{display:flex;align-items:center;gap:5px;padding:1px 0}
-.cb-row input[type="checkbox"]{
-  appearance:none;-webkit-appearance:none;
-  width:11px;height:11px;
-  background:#0a0e1a;border:1px solid #2a2a4a;border-radius:2px;
-  cursor:pointer;position:relative;flex-shrink:0;
-}
-.cb-row input[type="checkbox"]:checked{background:#e94560;border-color:#e94560}
-.cb-row input[type="checkbox"]:checked::after{
-  content:'✓';position:absolute;top:-2px;left:1px;font-size:8px;color:#fff;font-weight:700;
-}
-.cb-row label{font-size:8px;color:#8899aa;cursor:pointer}
+/* BUTTON COLORS */
+.teal{background:#0e6655}.teal:hover{background:#148f77}
+.blu-d{background:#1a5276}.blu-d:hover{background:#2471a3}
 
-/* ═══════════════════════════════════════════
-   PHASE ROWS
-   ═══════════════════════════════════════════ */
-.phase-row{display:flex;align-items:flex-start;gap:2px;padding:3px 0;border-bottom:1px solid #0f1a30}
-.phase-row:last-child{border-bottom:none}
-.phase-num{
-  font-size:8px;font-weight:800;color:#fff;background:#e94560;
-  width:14px;height:14px;
-  display:flex;align-items:center;justify-content:center;
-  border-radius:2px;flex-shrink:0;margin-top:1px;
+/* ===== GANTT-DIAGRAMM ===== */
+.gantt-row{display:flex;align-items:center;gap:4px;margin-bottom:4px;flex-wrap:wrap}
+.gantt-row label{font-size:9px;font-weight:700;color:#5a6a8a;min-width:28px}
+.gantt-row input[type="date"],
+.gantt-row select{
+  padding:3px 4px;border:1px solid #2a3a5c;background:#0a0e1a;color:#fff;
+  border-radius:4px;font-size:10px;flex:1;min-width:0;
 }
-.phase-fields{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
-.phase-field-row{display:flex;align-items:center;gap:2px}
-.phase-name{
-  flex:1;min-width:0;padding:2px 3px;
-  background:#0a0e1a;border:1px solid #2a2a4a;color:#e0e0e0;
-  border-radius:3px;font-size:8px;
+.gantt-row input[type="number"]{
+  width:36px;padding:3px 4px;border:1px solid #2a3a5c;background:#0a0e1a;color:#fff;
+  border-radius:4px;font-size:10px;text-align:center;
 }
-.phase-name:focus{border-color:#e94560;outline:none}
-.phase-date{
-  width:76px;padding:2px 2px;
-  background:#0a0e1a;border:1px solid #2a2a4a;color:#e0e0e0;
-  border-radius:3px;font-size:8px;flex-shrink:0;
-}
-.phase-date:focus{border-color:#e94560;outline:none}
+.gantt-row input:focus,.gantt-row select:focus{outline:none;border-color:#e94560}
 
-/* ═══════════════════════════════════════════
-   FARB-AUSWAHL v5 – Swatch + Hex-Input + Palette
-   ═══════════════════════════════════════════ */
-.phase-color-row{
-  display:flex;align-items:center;gap:3px;margin-top:1px;
-}
+.gantt-color{width:24px;height:24px;border:1px solid #2a3a5c;border-radius:4px;padding:0;cursor:pointer;background:none}
+.gantt-color::-webkit-color-swatch-wrapper{padding:1px}
+.gantt-color::-webkit-color-swatch{border:none;border-radius:3px}
 
-/* Sichtbares Farb-Quadrat (zeigt aktuelle Farbe) */
-.phase-swatch-current{
-  width:16px;height:16px;border-radius:3px;
-  border:2px solid #2a2a4a;cursor:pointer;flex-shrink:0;
-  transition:border-color .15s;
-}
-.phase-swatch-current:hover{border-color:#e94560}
+.gantt-phases-head{display:flex;justify-content:space-between;align-items:center;margin:6px 0 4px}
+.gantt-phases-head span{font-size:9px;font-weight:700;color:#5a6a8a;text-transform:uppercase;letter-spacing:.5px}
+.gantt-add{padding:2px 8px;border:1px solid #27ae60;background:transparent;color:#27ae60;border-radius:4px;cursor:pointer;font-size:9px;font-weight:700;transition:all .15s}
+.gantt-add:hover{background:#27ae60;color:#fff}
 
-/* Hex-Eingabefeld */
-.phase-hex{
-  width:56px;padding:2px 3px;
-  background:#0a0e1a;border:1px solid #2a2a4a;color:#e0e0e0;
-  border-radius:3px;font-size:8px;font-family:monospace;
-  text-transform:uppercase;letter-spacing:.5px;
-}
-.phase-hex:focus{border-color:#e94560;outline:none}
+.gantt-phases{max-height:200px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#2a3a5c transparent}
+.gantt-phases::-webkit-scrollbar{width:4px}
+.gantt-phases::-webkit-scrollbar-thumb{background:#2a3a5c;border-radius:2px}
 
-/* Palette-Toggle-Button */
-.phase-palette-btn{
-  padding:1px 4px;border:1px solid #2a2a4a;
-  background:#0a0e1a;color:#8899aa;border-radius:3px;
-  cursor:pointer;font-size:8px;line-height:1;
-  transition:all .12s;
-}
-.phase-palette-btn:hover{color:#e94560;border-color:#e94560}
+.gantt-phase{display:flex;align-items:center;gap:3px;margin-bottom:3px;padding:3px 4px;background:#0a0e1a;border-radius:4px;border:1px solid #2a3a5c}
+.gantt-phase input[type="text"]{flex:1;min-width:0;padding:2px 4px;border:1px solid #2a3a5c;background:transparent;color:#fff;border-radius:3px;font-size:9px}
+.gantt-phase input[type="date"]{width:90px;padding:2px 3px;border:1px solid #2a3a5c;background:transparent;color:#fff;border-radius:3px;font-size:9px}
+.gantt-phase input[type="color"]{width:20px;height:20px;border:1px solid #2a3a5c;border-radius:3px;padding:0;cursor:pointer;background:none;flex-shrink:0}
+.gantt-phase input:focus{outline:none;border-color:#e94560}
+.gantt-del{width:18px;height:18px;border:none;background:#e74c3c;color:#fff;border-radius:3px;cursor:pointer;font-size:10px;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s}
+.gantt-del:hover{background:#c0392b}
 
-/* Palette-Grid (standardmäßig versteckt) */
-.phase-palette{
-  display:none;flex-wrap:wrap;gap:2px;
-  padding:3px;margin-top:2px;
-  background:#0a0e1a;border:1px solid #2a2a4a;border-radius:3px;
-}
-.phase-palette.open{display:flex}
+.gantt-cb-label{display:flex;align-items:center;gap:3px;font-size:9px;color:#8899b3;cursor:pointer}
+.gantt-cb-label input[type="checkbox"]{accent-color:#e94560;width:12px;height:12px}
 
-/* Einzelne Farbfelder in der Palette */
-.pal-swatch{
-  width:14px;height:14px;border-radius:2px;
-  cursor:pointer;border:2px solid transparent;
-  transition:all .1s;
-}
-.pal-swatch:hover{border-color:#fff;transform:scale(1.15)}
-.pal-swatch.selected{border-color:#e94560;transform:scale(1.1)}
-
-/* PHASE ACTIONS */
-.phase-actions{padding:4px 0 2px;text-align:right}
-.btn-phase{
-  width:22px;height:16px;border:none;border-radius:3px;
-  background:#2a2a4a;color:#e94560;font-size:12px;
-  font-weight:700;cursor:pointer;
-}
-.btn-phase:hover{background:#e94560;color:#fff}
+.gantt-info{margin-top:4px;font-size:9px;color:#5a6a8a;line-height:1.4;min-height:14px}
+.gantt-info b{color:#e94560}
+.gantt-info.err{color:#e74c3c}
 
 /* FOOTER */
-.footer{padding:5px 0}
-.btn-main{
-  width:100%;padding:4px;border:none;background:#e94560;color:#fff;
-  border-radius:4px;font-weight:600;font-size:10px;
-  cursor:pointer;letter-spacing:.3px;text-transform:uppercase;
-}
-.btn-main:hover{background:#ff6b81}
-.btn-main:disabled{background:#5a6a8a;cursor:not-allowed}
+.footer{text-align:center;font-size:8px;color:#3a4a6a;margin-top:10px;padding:6px 0;border-top:1px solid #2a3a5c;letter-spacing:.5px}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#2a3a5c;border-radius:3px}
