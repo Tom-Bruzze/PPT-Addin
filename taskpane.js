@@ -1,6 +1,6 @@
 /*
   DROEGE GANTT Generator – taskpane.js
-  Build 14.02.2026 v8
+  Build 14.02.2026 v9
   
   CRITICAL FIX: Farbübergabe an PowerPoint Shapes
   
@@ -610,6 +610,9 @@ function buildGantt(slide, phases, timeSlots, cfg) {
             barTb.lineFormat.visible = false;
         }
     }
+
+    /* Sync all bar fill colors */
+    await context.sync();
 
     /* ── 6) HEUTE-LINIE ── */
     if (cfg.showToday) {
