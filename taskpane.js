@@ -597,6 +597,10 @@ function buildGantt(slide, phases, timeSlots, cfg) {
         }
     }
 
+    /* ★★★ KRITISCH: Alle Balken-Shapes mit Farben zu PowerPoint übertragen! ★★★ */
+    await context.sync();
+    console.log('[buildGantt] context.sync() nach Balken-Erstellung abgeschlossen - Farben sollten jetzt sichtbar sein');
+
     /* ── 6) HEUTE-LINIE ── */
     if (cfg.showToday) {
         var now = new Date();
