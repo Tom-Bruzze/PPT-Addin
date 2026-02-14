@@ -124,7 +124,7 @@ function cleanHex(raw) {
     var h = String(raw).replace(/[^0-9A-Fa-f]/g, "").toUpperCase();
     if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
     if (h.length !== 6) return null;
-    return h;  // OHNE # zurückgeben - wird in setSolidColor("#" + color) hinzugefügt
+    return "#" + h;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -574,7 +574,7 @@ function buildGantt(slide, phases, timeSlots, cfg) {
 
         console.log('[buildGantt] Bar ' + p + ' setting color:', phase.color);
         /* ★★★ FARBE DIREKT SETZEN – phase.color ist bereits "2471A3" ohne # ★★★ */
-        bar.fill.setSolidColor("#" + phase.color);
+        bar.fill.setSolidColor(phase.color);
 
         /* Balken-Text */
         if (barWidthRE >= 5) {
