@@ -4,7 +4,7 @@
     <meta charset="UTF-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>GANTT Generator</title>
-    <link rel="stylesheet" href="taskpane.css"/>
+    <link rel="stylesheet" href="https://Tom-Bruzze.github.io/PPT-Addin/taskpane.css"/>
     <script src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
 </head>
 <body>
@@ -12,144 +12,109 @@
 
     <!-- HEADER -->
     <div class="hdr">
-        <div class="logo">▥</div>
-        <div>
-            <div class="title"><b>GANTT Generator</b> by Droege Group</div>
-            <div class="build">Build 14.02.2026 15:00</div>
+        <div class="logo">&#9637;</div>
+        <div class="hdr-txt">
+            <div class="hdr-title">GANTT Generator</div>
+            <div class="hdr-sub">by Droege Group</div>
         </div>
+        <div class="hdr-build">Build 14.02.2026 15:00</div>
     </div>
 
-    <!-- Rastereinheit -->
-    <div class="re-sec">
-        <span class="lbl">RE</span>
+    <!-- RASTEREINHEIT -->
+    <div class="section-title">RE</div>
+    <div class="row" style="gap:3px;margin-bottom:4px;">
         <button class="pre" data-v="0.21">0,21</button>
         <button class="pre" data-v="0.42">0,42</button>
         <button class="pre active" data-v="0.63">0,63</button>
         <button class="pre" data-v="2.10">2,10</button>
-        <input type="text" class="re-in" id="reInput" value="0.63"/> <span class="lbl">cm</span>
+        <span style="color:#556;font-size:10px;margin-left:4px;line-height:28px;"> cm</span>
     </div>
 
     <!-- STATUS -->
-    <div class="sts info" id="status">Bereit</div>
+    <div id="status" class="sts info">Bereit</div>
 
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- ZEITRAUM -->
-    <!-- ═══════════════════════════════════════════ -->
-    <div class="sec">
-        <div class="sec-title">📅 Zeitraum & Einheit</div>
-
+    <!-- ZEITRAUM & EINHEIT -->
+    <div class="section-title">&#128197; Zeitraum &amp; Einheit</div>
+    <div class="card">
         <div class="form-row">
-            <label class="form-lbl">Zeiteinheit</label>
-            <select id="timeUnit" class="form-select">
+            <span class="form-lbl">Zeiteinheit</span>
+            <select id="timeUnit" class="form-input">
                 <option value="days">Tage</option>
-                <option value="weeks" selected>Kalenderwochen</option>
-                <option value="months">Monate</option>
+                <option value="weeks">Kalenderwochen</option>
+                <option value="months" selected>Monate</option>
                 <option value="quarters">Quartale</option>
             </select>
         </div>
-
         <div class="form-row">
-            <label class="form-lbl">Start-Datum</label>
+            <span class="form-lbl">Start-Datum</span>
             <input type="date" id="startDate" class="form-input"/>
         </div>
-
         <div class="form-row">
-            <label class="form-lbl">End-Datum</label>
+            <span class="form-lbl">End-Datum</span>
             <input type="date" id="endDate" class="form-input"/>
         </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════ -->
     <!-- PHASEN -->
-    <!-- ═══════════════════════════════════════════ -->
-    <div class="sec">
-        <div class="sec-title">📊 Phasen / Arbeitspakete</div>
-        <div class="hint">Name, Start, Ende und Farbe pro Zeile</div>
-
-        <div id="phaseContainer">
-            <!-- Dynamisch befüllt -->
-        </div>
-
-        <div class="row" style="margin-top:6px;gap:4px;">
-            <button class="sq grn" id="addPhase" style="flex:1;width:auto;" title="Phase hinzufügen">+ Phase</button>
-            <button class="sq pur" id="removePhase" style="width:42px;" title="Letzte Phase entfernen">−</button>
+    <div class="section-title">&#128202; Phasen / Arbeitspakete</div>
+    <div class="card">
+        <div class="phase-hint">Name, Start, Ende und Farbe pro Zeile</div>
+        <div id="phaseContainer"></div>
+        <div class="row" style="margin-top:6px;">
+            <button id="addPhase" class="btn btn-small btn-accent">+ Phase</button>
+            <button id="removePhase" class="btn btn-small btn-danger">&minus;</button>
         </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════ -->
     <!-- OPTIONEN -->
-    <!-- ═══════════════════════════════════════════ -->
-    <div class="sec">
-        <div class="sec-title">⚙️ Optionen</div>
-
+    <div class="section-title">&#9881;&#65039; Optionen</div>
+    <div class="card">
         <div class="form-row">
-            <label class="form-lbl">Heute-Linie</label>
-            <label class="toggle">
-                <input type="checkbox" id="showToday" checked/>
-                <span class="toggle-slider"></span>
-            </label>
+            <span class="form-lbl">Heute-Linie</span>
+            <input type="checkbox" id="showToday" checked/>
         </div>
-
         <div class="form-row">
-            <label class="form-lbl">Header-Zeile</label>
-            <label class="toggle">
-                <input type="checkbox" id="showHeader" checked/>
-                <span class="toggle-slider"></span>
-            </label>
+            <span class="form-lbl">Header-Zeile</span>
+            <input type="checkbox" id="showHeader" checked/>
         </div>
-
         <div class="form-row">
-            <label class="form-lbl">Beschriftungen links</label>
-            <label class="toggle">
-                <input type="checkbox" id="showLabels" checked/>
-                <span class="toggle-slider"></span>
-            </label>
+            <span class="form-lbl">Beschriftungen links</span>
+            <input type="checkbox" id="showLabels" checked/>
         </div>
-
         <div class="form-row">
-            <label class="form-lbl">Vertikale Rasterlinien</label>
-            <label class="toggle">
-                <input type="checkbox" id="showGridLines" checked/>
-                <span class="toggle-slider"></span>
-            </label>
+            <span class="form-lbl">Vertikale Rasterlinien</span>
+            <input type="checkbox" id="showGridLines" checked/>
         </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- POSITION & GRÖßE -->
-    <!-- ═══════════════════════════════════════════ -->
-    <div class="sec">
-        <div class="sec-title">📐 Position & Größe (RE)</div>
-        <div class="pos-grid">
-            <div class="pos-item">
-                <span class="pos-lbl">Links</span>
-                <span class="pos-val" id="posLeft">8</span>
-            </div>
-            <div class="pos-item">
-                <span class="pos-lbl">Oben</span>
-                <span class="pos-val" id="posTop">17</span>
-            </div>
-            <div class="pos-item">
-                <span class="pos-lbl">Max Breite</span>
-                <span class="pos-val" id="posWidth">118</span>
-            </div>
-            <div class="pos-item">
-                <span class="pos-lbl">Max Höhe</span>
-                <span class="pos-val" id="posHeight">69</span>
-            </div>
+    <!-- POSITION & GRÖSSE -->
+    <div class="section-title">&#128208; Position &amp; Gr&ouml;&szlig;e (RE)</div>
+    <div class="card">
+        <div class="form-row">
+            <span class="form-lbl">Links</span>
+            <input type="number" id="ganttLeft" class="form-input" value="8" min="0" max="60"/>
+        </div>
+        <div class="form-row">
+            <span class="form-lbl">Oben</span>
+            <input type="number" id="ganttTop" class="form-input" value="17" min="0" max="80"/>
+        </div>
+        <div class="form-row">
+            <span class="form-lbl">Max Breite</span>
+            <input type="number" id="ganttMaxW" class="form-input" value="118" min="10" max="200"/>
+        </div>
+        <div class="form-row">
+            <span class="form-lbl">Max H&ouml;he</span>
+            <input type="number" id="ganttMaxH" class="form-input" value="69" min="10" max="120"/>
         </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════ -->
-    <!-- GENERATE -->
-    <!-- ═══════════════════════════════════════════ -->
-    <button class="btn-generate" id="generateGantt">▥ GANTT erstellen</button>
+    <!-- GENERATE BUTTON -->
+    <button id="generateGantt" class="btn btn-primary btn-full">&#9637; GANTT erstellen</button>
 
     <!-- INFO BOX -->
-    <div class="info-box" id="infoBox"></div>
+    <div id="infoBox" class="info-box"></div>
 
 </div>
-
-<script src="taskpane.js"></script>
+<script src="https://Tom-Bruzze.github.io/PPT-Addin/taskpane.js"></script>
 </body>
 </html>
