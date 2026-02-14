@@ -193,11 +193,22 @@ function getPhases() {
         var name  = row.querySelector(".phase-name").value || ("Phase " + i);
         var start = row.querySelector(".phase-start").value;
         var end   = row.querySelector(".phase-end").value;
-        var raw   = row.querySelector(".phase-color").value || "#2471A3";
+        var colorEl = row.querySelector(".phase-color");
         if (!start || !end) continue;
-        /* Farbe normalisieren: # entfernen, uppercase, 6-stellig */
-        var hex = raw.replace(/^#/, "").toUpperCase();
-        if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+
+        /* ── FARB-FIX ──
+           input[type=color].value liefert immer "#rrggbb" (lowercase).
+           PowerPoint setSolidColor() braucht 6-stellig UPPERCASE OHNE #. */
+        var rawColor = (colorEl && colorEl.value) ? colorEl.value : "#2471A3";
+        var hex = rawColor.replace(/^#/, "").toUpperCase();
+        if (hex.length === 3) {
+            hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+        }
+        /* Fallback: wenn kein gültiger Hex */
+        if (!/^[0-9A-F]{6}$/.test(hex)) {
+            hex = "2471A3";
+        }
+
         phases.push({
             name:  name,
             start: new Date(start),
@@ -541,7 +552,12 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
         bar.top    = re2pt(barY);
         bar.width  = re2pt(barWidthRE);
         bar.height = re2pt(cfg.barHeightRE);
-        bar.fill.setSolidColor(phase.color);
+        /* FARB-FIX: Farbe explizit als 6-stelligen Hex-String übergeben */
+            try {
+                bar.fill.setSolidColor(phase.color);
+            } catch(colorErr) {
+                bar.fill.setSolidColor("2471A3");
+            }
         bar.lineFormat.visible = false;
         bar.name = "GANTT_BAR_" + p;
 

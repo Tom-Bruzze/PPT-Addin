@@ -10,7 +10,6 @@
 <body>
 <div class="app">
 
-    <!-- HEADER (identisch zum Resize-Addin) -->
     <div class="hdr">
         <span class="logo">&#9638;</span>
         <div>
@@ -19,7 +18,6 @@
         </div>
     </div>
 
-    <!-- Rastereinheit -->
     <div class="re-sec">
         <span class="lbl">RE</span>
         <button class="pre active" data-v="0.21" type="button">0,21</button>
@@ -29,26 +27,17 @@
         <span class="unit">cm</span>
     </div>
 
-    <!-- Status -->
     <div id="status" class="sts info">Bereit</div>
 
-    <!-- SECTION: Zeitraum -->
     <div class="sec">
         <button class="sec-hdr" type="button" onclick="toggleSection(this)">
             <span class="sec-title">Zeitraum & Einheit</span>
             <span class="sec-toggle"></span>
         </button>
         <div class="sec-body">
-            <div class="form-row">
-                <span class="form-lbl">Start</span>
-                <input id="startDate" class="form-input" type="date">
-            </div>
-            <div class="form-row">
-                <span class="form-lbl">Ende</span>
-                <input id="endDate" class="form-input" type="date">
-            </div>
-            <div class="form-row">
-                <span class="form-lbl">Einheit</span>
+            <div class="form-row"><span class="form-lbl">Start</span><input id="startDate" class="form-input" type="date"></div>
+            <div class="form-row"><span class="form-lbl">Ende</span><input id="endDate" class="form-input" type="date"></div>
+            <div class="form-row"><span class="form-lbl">Einheit</span>
                 <select id="timeUnit" class="form-input">
                     <option value="days">Tage</option>
                     <option value="weeks" selected>Wochen (KW)</option>
@@ -59,67 +48,34 @@
         </div>
     </div>
 
-    <!-- SECTION: Position & Größe -->
     <div class="sec">
         <button class="sec-hdr" type="button" onclick="toggleSection(this)">
             <span class="sec-title">Position & Größe (RE)</span>
             <span class="sec-toggle"></span>
         </button>
         <div class="sec-body">
-            <div class="form-row">
-                <span class="form-lbl">Links</span>
-                <input id="ganttLeft" class="form-input" type="number" min="0" value="8">
-            </div>
-            <div class="form-row">
-                <span class="form-lbl">Oben</span>
-                <input id="ganttTop" class="form-input" type="number" min="0" value="17">
-            </div>
-            <div class="form-row">
-                <span class="form-lbl">Max Breite</span>
-                <input id="ganttMaxW" class="form-input" type="number" min="10" value="118">
-            </div>
-            <div class="form-row">
-                <span class="form-lbl">Max Höhe</span>
-                <input id="ganttMaxH" class="form-input" type="number" min="10" value="69">
-            </div>
-            <div class="form-row">
-                <span class="form-lbl">Zeilenhöhe</span>
-                <input id="rowHeightRE" class="form-input" type="number" min="2" value="4">
-            </div>
-            <div class="form-row">
-                <span class="form-lbl">Balkenhöhe</span>
-                <input id="barHeightRE" class="form-input" type="number" min="1" value="3">
-            </div>
+            <div class="form-row"><span class="form-lbl">Links</span><input id="ganttLeft" class="form-input" type="number" min="0" value="8"></div>
+            <div class="form-row"><span class="form-lbl">Oben</span><input id="ganttTop" class="form-input" type="number" min="0" value="17"></div>
+            <div class="form-row"><span class="form-lbl">Max Breite</span><input id="ganttMaxW" class="form-input" type="number" min="10" value="118"></div>
+            <div class="form-row"><span class="form-lbl">Max Höhe</span><input id="ganttMaxH" class="form-input" type="number" min="10" value="69"></div>
+            <div class="form-row"><span class="form-lbl">Zeilenhöhe</span><input id="rowHeightRE" class="form-input" type="number" min="2" value="4"></div>
+            <div class="form-row"><span class="form-lbl">Balkenhöhe</span><input id="barHeightRE" class="form-input" type="number" min="1" value="3"></div>
         </div>
     </div>
 
-    <!-- SECTION: Optionen -->
     <div class="sec">
         <button class="sec-hdr" type="button" onclick="toggleSection(this)">
             <span class="sec-title">Optionen</span>
             <span class="sec-toggle"></span>
         </button>
         <div class="sec-body">
-            <div class="cb-row">
-                <input type="checkbox" id="showHeader" checked>
-                <label for="showHeader">Header-Zeile anzeigen</label>
-            </div>
-            <div class="cb-row">
-                <input type="checkbox" id="showLabels" checked>
-                <label for="showLabels">Phasen-Labels links</label>
-            </div>
-            <div class="cb-row">
-                <input type="checkbox" id="showGridLines" checked>
-                <label for="showGridLines">Rasterlinien anzeigen</label>
-            </div>
-            <div class="cb-row">
-                <input type="checkbox" id="showToday" checked>
-                <label for="showToday">Heute-Linie anzeigen</label>
-            </div>
+            <div class="cb-row"><input type="checkbox" id="showHeader" checked><label for="showHeader">Header-Zeile anzeigen</label></div>
+            <div class="cb-row"><input type="checkbox" id="showLabels" checked><label for="showLabels">Phasen-Labels links</label></div>
+            <div class="cb-row"><input type="checkbox" id="showGridLines" checked><label for="showGridLines">Rasterlinien anzeigen</label></div>
+            <div class="cb-row"><input type="checkbox" id="showToday" checked><label for="showToday">Heute-Linie anzeigen</label></div>
         </div>
     </div>
 
-    <!-- SECTION: Phasen -->
     <div class="sec">
         <button class="sec-hdr" type="button" onclick="toggleSection(this)">
             <span class="sec-title">Phasen</span>
@@ -134,19 +90,15 @@
         </div>
     </div>
 
-    <!-- GENERATE BUTTON -->
-    <button id="generateGantt" class="btn-generate" type="button">
-        GANTT erstellen
-    </button>
+    <button id="generateGantt" class="btn-generate" type="button">GANTT erstellen</button>
 
 </div>
-
 <script src="taskpane.js"></script>
 <script>
-function toggleSection(hdr) {
-    var body = hdr.nextElementSibling;
-    var collapsed = body.classList.toggle('collapsed');
-    hdr.classList.toggle('is-collapsed', collapsed);
+function toggleSection(hdr){
+    var body=hdr.nextElementSibling;
+    var c=body.classList.toggle('collapsed');
+    hdr.classList.toggle('is-collapsed',c);
 }
 </script>
 </body>
