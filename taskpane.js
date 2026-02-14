@@ -1,20 +1,10 @@
 /*
   DROEGE GANTT Generator – taskpane.js
-  Build 14.02.2026 v9
-  
-  CRITICAL FIX: Farbübergabe an PowerPoint Shapes
-  
-  Problem gelöst:
-  - PALETTE enthält '#RRGGBB' (mit #-Präfix)
-  - cleanHex() gibt '#RRGGBB' zurück (mit #-Präfix)
-  - setSolidColor() erwartet '#RRGGBB' (mit #-Präfix)
-  
-  Alle "#" + variable Konkatenierungen wurden entfernt,
-  da die Werte bereits das #-Präfix enthalten.
-  
-  Farbfluss:
-  PALETTE → defaultHex → colorVal.value → getPhases → phase.color → setSolidColor()
-  '#2471A3' → '#2471A3' → '#2471A3' → '#2471A3' → '#2471A3' → bar.fill.setSolidColor('#2471A3')
+  Build 14.02.2026 v10
+  FIX: Farbe wird DIREKT beim Shape-Erstellen gesetzt (kein 2-Pass mehr)
+       - cleanHex() liefert 6 Zeichen OHNE # → exakt was setSolidColor() braucht
+       - Farbauswahl komplett neu: simples data-hex Attribut als Single Source of Truth
+       - Kein dataset.color, kein style.backgroundColor Parsing
 */
 
 /* ── GLOBALS ── */
@@ -273,14 +263,12 @@ function addPhaseRow() {
         var target = evt.target;
         if (!target.classList.contains("pal-swatch")) return;
         var hex = target.getAttribute("data-hex");
-        console.log('[PaletteClick] Selected hex from data-hex:', hex);
         if (!hex) return;
 
         /* 1. Hidden Input (Source of Truth) */
         colorVal.value = hex;
-        console.log('[PaletteClick] Set colorVal.value to:', hex);
         /* 2. Sichtbares Swatch */
-        swatch.style.backgroundColor = hex;
+        swatch.style.backgroundColor = "#" + hex;
         /* 3. Hex-Eingabefeld */
         hexInput.value = hex;
 
@@ -299,7 +287,7 @@ function addPhaseRow() {
         var norm = cleanHex(this.value);
         if (norm) {
             colorVal.value = norm;
-            swatch.style.backgroundColor = norm;
+            swatch.style.backgroundColor = "#" + norm;
             var all = palDiv.querySelectorAll(".pal-swatch");
             for (var s = 0; s < all.length; s++) {
                 all[s].classList.toggle("selected", all[s].getAttribute("data-hex") === norm);
@@ -312,7 +300,7 @@ function addPhaseRow() {
         if (norm) {
             this.value = norm;
             colorVal.value = norm;
-            swatch.style.backgroundColor = norm;
+            swatch.style.backgroundColor = "#" + norm;
         } else {
             this.value = defaultHex;
             colorVal.value = defaultHex;
@@ -357,7 +345,6 @@ function getPhases() {
         if (!hex) hex = PALETTE[(i-1) % PALETTE.length];
         console.log('[getPhases] Phase ' + i + ' final hex (after fallback if needed):', hex);
 
-        console.log('[getPhases] Pushing phase:', { name: name, color: hex });
         phases.push({
             name:  name,
             start: new Date(start),
@@ -420,7 +407,6 @@ function generateGantt() {
     if (!apiOk) { showStatus("PowerPoint API nicht verfügbar","error"); return; }
 
     var phases = getPhases();
-    console.log('[generateGantt] Got phases:', phases);
     if (phases.length === 0) { showStatus("Keine gültigen Phasen","error"); return; }
 
     /* Debug: Farben in Status anzeigen */
@@ -610,9 +596,6 @@ function buildGantt(slide, phases, timeSlots, cfg) {
             barTb.lineFormat.visible = false;
         }
     }
-
-    /* Sync all bar fill colors */
-    await context.sync();
 
     /* ── 6) HEUTE-LINIE ── */
     if (cfg.showToday) {
