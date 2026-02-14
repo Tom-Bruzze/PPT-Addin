@@ -1,10 +1,20 @@
 /*
   DROEGE GANTT Generator – taskpane.js
-  Build 14.02.2026 v7-DEBUG
-  FIX: Farbe wird DIREKT beim Shape-Erstellen gesetzt (kein 2-Pass mehr)
-       - cleanHex() liefert 6 Zeichen OHNE # → exakt was setSolidColor() braucht
-       - Farbauswahl komplett neu: simples data-hex Attribut als Single Source of Truth
-       - Kein dataset.color, kein style.backgroundColor Parsing
+  Build 14.02.2026 v8
+  
+  CRITICAL FIX: Farbübergabe an PowerPoint Shapes
+  
+  Problem gelöst:
+  - PALETTE enthält '#RRGGBB' (mit #-Präfix)
+  - cleanHex() gibt '#RRGGBB' zurück (mit #-Präfix)
+  - setSolidColor() erwartet '#RRGGBB' (mit #-Präfix)
+  
+  Alle "#" + variable Konkatenierungen wurden entfernt,
+  da die Werte bereits das #-Präfix enthalten.
+  
+  Farbfluss:
+  PALETTE → defaultHex → colorVal.value → getPhases → phase.color → setSolidColor()
+  '#2471A3' → '#2471A3' → '#2471A3' → '#2471A3' → '#2471A3' → bar.fill.setSolidColor('#2471A3')
 */
 
 /* ── GLOBALS ── */
@@ -270,7 +280,7 @@ function addPhaseRow() {
         colorVal.value = hex;
         console.log('[PaletteClick] Set colorVal.value to:', hex);
         /* 2. Sichtbares Swatch */
-        swatch.style.backgroundColor = "#" + hex;
+        swatch.style.backgroundColor = hex;
         /* 3. Hex-Eingabefeld */
         hexInput.value = hex;
 
@@ -289,7 +299,7 @@ function addPhaseRow() {
         var norm = cleanHex(this.value);
         if (norm) {
             colorVal.value = norm;
-            swatch.style.backgroundColor = "#" + norm;
+            swatch.style.backgroundColor = norm;
             var all = palDiv.querySelectorAll(".pal-swatch");
             for (var s = 0; s < all.length; s++) {
                 all[s].classList.toggle("selected", all[s].getAttribute("data-hex") === norm);
@@ -302,7 +312,7 @@ function addPhaseRow() {
         if (norm) {
             this.value = norm;
             colorVal.value = norm;
-            swatch.style.backgroundColor = "#" + norm;
+            swatch.style.backgroundColor = norm;
         } else {
             this.value = defaultHex;
             colorVal.value = defaultHex;
