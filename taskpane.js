@@ -1,6 +1,6 @@
 /*
   DROEGE GANTT Generator – taskpane.js
-  Build 14.02.2026 v5
+  Build 14.02.2026 v6
   FIX: Farbe wird DIREKT beim Shape-Erstellen gesetzt (kein 2-Pass mehr)
        - cleanHex() liefert 6 Zeichen OHNE # → exakt was setSolidColor() braucht
        - Farbauswahl komplett neu: simples data-hex Attribut als Single Source of Truth
@@ -20,10 +20,10 @@ var BAR_HEIGHT_RE = 3;
 
 /* 16 gut unterscheidbare Farben */
 var PALETTE = [
-    "2471A3", "27AE60", "8E44AD", "E67E22",
-    "2980B9", "1ABC9C", "C0392B", "D4AC0D",
-    "16A085", "E74C3C", "3498DB", "F39C12",
-    "1F618D", "239B56", "7D3C98", "AF601A"
+    "#2471A3", "#27AE60", "#8E44AD", "#E67E22",
+    "#2980B9", "#1ABC9C", "#C0392B", "#D4AC0D",
+    "#16A085", "#E74C3C", "#3498DB", "#F39C12",
+    "#1F618D", "#239B56", "#7D3C98", "#AF601A"
 ];
 
 var phaseCount = 0;
@@ -121,10 +121,10 @@ function fmtDate(d) {
    ═══════════════════════════════════════════════════════ */
 function cleanHex(raw) {
     if (!raw) return null;
-    var h = raw.replace(/[^0-9A-Fa-f]/g, "").toUpperCase();
+    var h = String(raw).replace(/[^0-9A-Fa-f]/g, "").toUpperCase();
     if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
     if (h.length !== 6) return null;
-    return h;
+    return "#" + h;
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -200,7 +200,7 @@ function addPhaseRow() {
     /* Sichtbares Farbquadrat (zeigt aktuelle Farbe) */
     var swatch = document.createElement("div");
     swatch.className = "phase-swatch-current";
-    swatch.style.backgroundColor = "#" + defaultHex;
+    swatch.style.backgroundColor = defaultHex;
     swatch.title = "Klicken für Palette";
     row3.appendChild(swatch);
 
@@ -230,7 +230,7 @@ function addPhaseRow() {
         var palHex = PALETTE[c];
         var sw = document.createElement("div");
         sw.className = "pal-swatch";
-        sw.style.backgroundColor = "#" + palHex;
+        sw.style.backgroundColor = palHex;
         sw.setAttribute("data-hex", palHex);
         if (palHex === defaultHex) sw.classList.add("selected");
         palDiv.appendChild(sw);
@@ -301,7 +301,7 @@ function addPhaseRow() {
         } else {
             this.value = defaultHex;
             colorVal.value = defaultHex;
-            swatch.style.backgroundColor = "#" + defaultHex;
+            swatch.style.backgroundColor = defaultHex;
             showStatus("Ungültiger Hex-Wert, zurückgesetzt", "warning");
         }
     });
@@ -402,7 +402,7 @@ function generateGantt() {
     if (phases.length === 0) { showStatus("Keine gültigen Phasen","error"); return; }
 
     /* Debug: Farben in Status anzeigen */
-    var colorDebug = phases.map(function(p){ return p.name + "=#" + p.color; }).join(", ");
+    var colorDebug = phases.map(function(p){ return p.name + "=" + p.color; }).join(", ");
     showStatus("Erstelle... " + colorDebug, "info");
 
     var startDate = new Date(document.getElementById("startDate").value);
@@ -473,7 +473,7 @@ function buildGantt(slide, phases, timeSlots, cfg) {
     bg.top    = re2pt(y0);
     bg.width  = re2pt(totalW);
     bg.height = re2pt(totalH);
-    bg.fill.setSolidColor("FFFFFF");
+    bg.fill.setSolidColor("#FFFFFF");
     bg.lineFormat.visible = false;
     bg.name = "GANTT_BG";
 
@@ -490,11 +490,11 @@ function buildGantt(slide, phases, timeSlots, cfg) {
             htb.name = "GANTT_HDR_" + h;
             htb.textFrame.autoSizeSetting = PowerPoint.ShapeAutoSize.autoSizeNone;
             htb.textFrame.textRange.font.size = 6;
-            htb.textFrame.textRange.font.color = "1A1A2E";
+            htb.textFrame.textRange.font.color = "#000000";
             htb.textFrame.textRange.paragraphFormat.horizontalAlignment =
                 PowerPoint.ParagraphHorizontalAlignment.center;
             htb.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middleCentered;
-            htb.fill.clear();
+            htb.fill.setSolidColor("#E6E6E6");
             htb.lineFormat.visible = false;
         }
     }
@@ -512,7 +512,7 @@ function buildGantt(slide, phases, timeSlots, cfg) {
             ltb.name = "GANTT_LBL_" + l;
             ltb.textFrame.autoSizeSetting = PowerPoint.ShapeAutoSize.autoSizeNone;
             ltb.textFrame.textRange.font.size  = 8;
-            ltb.textFrame.textRange.font.color = "1A1A2E";
+            ltb.textFrame.textRange.font.color = "#1A1A2E";
             ltb.textFrame.textRange.font.bold  = true;
             ltb.textFrame.textRange.paragraphFormat.horizontalAlignment =
                 PowerPoint.ParagraphHorizontalAlignment.left;
@@ -531,7 +531,7 @@ function buildGantt(slide, phases, timeSlots, cfg) {
             gl.top    = re2pt(y0);
             gl.width  = 0.5;
             gl.height = re2pt(totalH);
-            gl.fill.setSolidColor("D5D8DC");
+            gl.fill.setSolidColor("#D5D8DC");
             gl.lineFormat.visible = false;
             gl.name = "GANTT_GRID_" + g;
         }
@@ -578,7 +578,7 @@ function buildGantt(slide, phases, timeSlots, cfg) {
             barTb.name = "GANTT_BARTXT_" + p;
             barTb.textFrame.autoSizeSetting = PowerPoint.ShapeAutoSize.autoSizeNone;
             barTb.textFrame.textRange.font.size  = 7;
-            barTb.textFrame.textRange.font.color = "FFFFFF";
+            barTb.textFrame.textRange.font.color = "#FFFFFF";
             barTb.textFrame.textRange.font.bold  = true;
             barTb.textFrame.textRange.paragraphFormat.horizontalAlignment =
                 PowerPoint.ParagraphHorizontalAlignment.center;
@@ -599,7 +599,7 @@ function buildGantt(slide, phases, timeSlots, cfg) {
             tl.top    = re2pt(y0);
             tl.width  = 1.5;
             tl.height = re2pt(totalH);
-            tl.fill.setSolidColor("E74C3C");
+            tl.fill.setSolidColor("#E74C3C");
             tl.lineFormat.visible = false;
             tl.name = "GANTT_TODAY";
         }
