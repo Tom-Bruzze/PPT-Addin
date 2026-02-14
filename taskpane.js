@@ -1,38 +1,72 @@
-/* 
+/*
  ═══════════════════════════════════════════════════════
- Droege GANTT Generator  –  taskpane.js  v2.0
+ Droege GANTT Generator  –  taskpane.js  v2.2
  
- Standalone GANTT-Diagramm Add-in für PowerPoint
- Erstellt rasterbasierte GANTT-Charts direkt auf der Folie.
+ PowerPoint Add-in – erstellt rasterbasierte GANTT-Charts.
+ Nutzt PowerPointApi 1.10 (Requirement Set).
+ 
+ WICHTIG:  Die PowerPoint JS API akzeptiert fuer Enums
+           sowohl die Enum-Objekte als auch deren
+           korrespondierende String-Werte.
+           In v2.2 verwenden wir durchgaengig String-
+           Literale – das ist offiziell unterstuetzt und
+           umgeht jedes Enum-Aufloesung-Problem.
+           Referenz: https://learn.microsoft.com/en-us/
+           javascript/api/powerpoint
  
  DROEGE GROUP · 2025
  ═══════════════════════════════════════════════════════
  */
 
 /* ═══ Konstanten ═══ */
-var CM = 28.3465;                     /* 1 cm in PowerPoint-Punkten   */
-var gridUnitCm = 0.21;               /* Standard-Rastereinheit       */
+var CM = 28.3465;
+var gridUnitCm = 0.21;
 var apiOk = false;
 
-var GANTT_MAX_W = 118;               /* max Breite in RE             */
-var GANTT_MAX_H = 69;                /* max Höhe in RE               */
-var GANTT_LEFT  = 8;                 /* Abstand links in RE          */
-var GANTT_TOP   = 17;                /* Abstand oben in RE           */
-var GANTT_TAG   = "DROEGE_GANTT";    /* Shape-Name-Prefix            */
+var GANTT_MAX_W = 118;
+var GANTT_MAX_H = 69;
+var GANTT_LEFT  = 8;
+var GANTT_TOP   = 17;
+var GANTT_TAG   = "DROEGE_GANTT";
 var ganttPhaseCount = 0;
+
+/* ═══════════════════════════════════════════
+   ENUM STRING-KONSTANTEN (PowerPointApi 1.10)
+   
+   Die Office JS API akzeptiert diese String-
+   Werte ueberall dort, wo ein Enum erwartet
+   wird. Das ist sicherer als die Referenz auf
+   PowerPoint.XyzEnum.value, weil der Namespace
+   je nach Ladezeit undefiniert sein kann.
+   ═══════════════════════════════════════════ */
+
+var SHAPE_RECTANGLE       = "Rectangle";
+var SHAPE_ROUNDED_RECT    = "RoundedRectangle";
+var AUTOSIZE_NONE         = "None";
+var VALIGN_MIDDLE         = "Middle";
+var PALIGN_CENTER         = "Center";
+var PALIGN_LEFT           = "Left";
 
 /* ═══════════════════════════════════════════
    Office Init
    ═══════════════════════════════════════════ */
 Office.onReady(function (info) {
   if (info.host === Office.HostType.PowerPoint) {
+
+    /* Pruefe ob PowerPointApi 1.10 verfuegbar ist */
     if (Office.context.requirements && Office.context.requirements.isSetSupported) {
-      apiOk = Office.context.requirements.isSetSupported("PowerPointApi", "1.5");
+      apiOk = Office.context.requirements.isSetSupported("PowerPointApi", "1.10");
     } else {
-      apiOk = (typeof PowerPoint !== "undefined" && PowerPoint.run && typeof PowerPoint.run === "function");
+      apiOk = (typeof PowerPoint !== "undefined" && typeof PowerPoint.run === "function");
     }
+
     initUI();
-    if (!apiOk) showStatus("PowerPointApi 1.5 nicht verfügbar", "warning");
+
+    if (!apiOk) {
+      showStatus("PowerPointApi 1.10 nicht verfuegbar – bitte PowerPoint aktualisieren", "warning");
+    } else {
+      showStatus("Bereit  ·  API 1.10 ✓", "success");
+    }
   }
 });
 
@@ -41,7 +75,6 @@ Office.onReady(function (info) {
    ═══════════════════════════════════════════ */
 function initUI() {
 
-  /* Rastereinheit: Input */
   var gi = document.getElementById("gridUnit");
   gi.addEventListener("change", function () {
     var v = parseFloat(this.value);
@@ -52,7 +85,6 @@ function initUI() {
     }
   });
 
-  /* Rastereinheit: Presets */
   document.querySelectorAll(".pre").forEach(function (b) {
     b.addEventListener("click", function () {
       var v = parseFloat(this.dataset.value);
@@ -63,10 +95,8 @@ function initUI() {
     });
   });
 
-  /* Papierformat */
   bind("setSlide", function () { setSlideSize(); });
 
-  /* GANTT Init */
   initGantt();
 }
 
@@ -95,10 +125,31 @@ function c2p(cm) { return cm * CM; }
 function p2c(pt) { return pt / CM; }
 
 /* ═══════════════════════════════════════════
-   PAPIERFORMAT 27,728 × 19,297 cm
+   TEXT-FORMATIERUNG
+   
+   Setzt Text + Schriftart + Alignment auf
+   einem Shape. Nutzt ausschliesslich String-
+   Enum-Werte (API 1.10 kompatibel).
+   ═══════════════════════════════════════════ */
+function formatShapeText(shape, text, opts) {
+  /* opts: { fontSize, fontColor, bold, vAlign, pAlign } */
+  var tf = shape.textFrame;
+  tf.autoSizeSetting = AUTOSIZE_NONE;
+  tf.verticalAlignment = opts.vAlign || VALIGN_MIDDLE;
+
+  var tr = tf.textRange;
+  tr.text = text;
+  tr.font.size  = opts.fontSize || 7;
+  tr.font.color = opts.fontColor || "333333";
+  tr.font.bold  = opts.bold || false;
+  tr.paragraphFormat.alignment = opts.pAlign || PALIGN_LEFT;
+}
+
+/* ═══════════════════════════════════════════
+   PAPIERFORMAT 27,728 x 19,297 cm
    ═══════════════════════════════════════════ */
 function setSlideSize() {
-  if (!apiOk) { showStatus("PowerPointApi 1.5 nötig", "error"); return; }
+  if (!apiOk) { showStatus("PowerPointApi 1.10 noetig", "error"); return; }
   PowerPoint.run(function (ctx) {
     var ps = ctx.presentation.pageSetup;
     ps.load(["slideWidth", "slideHeight"]);
@@ -115,44 +166,31 @@ function setSlideSize() {
 }
 
 /* ═══════════════════════════════════════════════════════
-   ██████   ██████   ██   █   ████████  ████████
-   █        █    █   ██   █      █         █
-   █  ███   ██████   █ █  █      █         █
-   █    █   █    █   █  █ █      █         █
-   ██████   █    █   █   ██      █         █
-
-   GANTT-DIAGRAMM – Erzeugt auf der aktuellen Folie
-   
-   Fläche:   max 118 RE breit × max 69 RE hoch
-   Position: links 8 RE, oben 17 RE vom Rand
+   GANTT-DIAGRAMM
    ═══════════════════════════════════════════════════════ */
 
 function initGantt() {
 
-  /* Default-Datum: heute → +3 Monate */
   var today = new Date();
   var d3m = new Date(today);
   d3m.setMonth(d3m.getMonth() + 3);
   document.getElementById("ganttStart").value = isoDate(today);
   document.getElementById("ganttEnd").value = isoDate(d3m);
 
-  /* 3 Beispiel-Phasen */
   addGanttPhase("Konzeption", today, offsetDays(today, 14), "#2e86c1");
   addGanttPhase("Umsetzung", offsetDays(today, 14), offsetDays(today, 56), "#27ae60");
   addGanttPhase("Abnahme", offsetDays(today, 56), d3m, "#e94560");
 
-  /* Buttons */
   bind("ganttAddPhase", function () {
     var s = new Date(document.getElementById("ganttStart").value);
     var e = new Date(document.getElementById("ganttEnd").value);
-    if (isNaN(s.getTime()) || isNaN(e.getTime())) { s = today; e = d3m; }
+    if (isNaN(s.getTime()) || isNaN(e.getTime())) { s = new Date(); e = new Date(); e.setMonth(e.getMonth()+3); }
     addGanttPhase("Phase " + (ganttPhaseCount + 1), s, offsetDays(s, 14), randomColor());
   });
 
   bind("createGantt", function () { createGanttChart(); });
 }
 
-/* ─── Phase-UI hinzufügen ─── */
 function addGanttPhase(name, start, end, color) {
   ganttPhaseCount++;
   var id = "gp_" + ganttPhaseCount;
@@ -211,7 +249,6 @@ function ganttInfo(msg, err) {
   el.className = "gantt-info" + (err ? " err" : "");
 }
 
-/* ─── Phasen aus UI lesen ─── */
 function readPhases() {
   var phases = [];
   var items = document.querySelectorAll(".gantt-phase");
@@ -232,9 +269,8 @@ function readPhases() {
    GANTT ERZEUGEN – Hauptfunktion
    ═══════════════════════════════════════════ */
 function createGanttChart() {
-  if (!apiOk) { showStatus("PowerPointApi 1.5 nötig", "error"); return; }
+  if (!apiOk) { showStatus("PowerPointApi 1.10 noetig", "error"); return; }
 
-  /* Eingaben lesen */
   var projStart = new Date(document.getElementById("ganttStart").value);
   var projEnd   = new Date(document.getElementById("ganttEnd").value);
   var unit      = document.getElementById("ganttUnit").value;
@@ -246,44 +282,42 @@ function createGanttChart() {
   var rowColor  = document.getElementById("ganttRowColor").value;
 
   if (isNaN(projStart.getTime()) || isNaN(projEnd.getTime())) {
-    ganttInfo("❌ Ungültige Datumsangaben!", true); return;
+    ganttInfo("Ungueltige Datumsangaben!", true); return;
   }
   if (projEnd <= projStart) {
-    ganttInfo("❌ Ende muss nach Start liegen!", true); return;
+    ganttInfo("Ende muss nach Start liegen!", true); return;
   }
 
   var phases = readPhases();
   if (phases.length === 0) {
-    ganttInfo("❌ Mindestens eine Phase hinzufügen!", true); return;
+    ganttInfo("Mindestens eine Phase hinzufuegen!", true); return;
   }
 
-  /* Zeiteinheiten berechnen */
   var numUnits;
   if (unit === "week")    numUnits = weeksBetween(projStart, projEnd);
   if (unit === "month")   numUnits = monthsBetween(projStart, projEnd);
   if (unit === "quarter") numUnits = quartersBetween(projStart, projEnd);
-  if (numUnits < 1) numUnits = 1;
+  if (!numUnits || numUnits < 1) numUnits = 1;
 
-  /* Layout berechnen */
   var numRows   = phases.length + (showHead ? 1 : 0);
-  var chartWRE  = GANTT_MAX_W - labelWRE;            /* Breite für Zeitachse */
-  var colWRE    = Math.floor(chartWRE / numUnits);    /* Breite pro Zeiteinheit */
+  var chartWRE  = GANTT_MAX_W - labelWRE;
+  var colWRE    = Math.floor(chartWRE / numUnits);
   if (colWRE < 1) colWRE = 1;
-  var usedWRE   = colWRE * numUnits;                  /* tatsächlich genutzte Breite */
-  var rowHRE    = Math.floor(GANTT_MAX_H / numRows);  /* Höhe pro Zeile */
+  var usedWRE   = colWRE * numUnits;
+  var rowHRE    = Math.floor(GANTT_MAX_H / numRows);
   if (rowHRE < 2) rowHRE = 2;
-  if (rowHRE > 6) rowHRE = 6;                         /* max 6 RE pro Zeile */
+  if (rowHRE > 6) rowHRE = 6;
 
   var totalDays = daysBetween(projStart, projEnd);
   if (totalDays < 1) totalDays = 1;
 
-  /* Info anzeigen */
   ganttInfo(
     "<b>" + numUnits + "</b> " + (unit === "week" ? "Wochen" : unit === "month" ? "Monate" : "Quartale") +
     " | <b>" + phases.length + "</b> Phasen | Spalte: <b>" + colWRE + " RE</b> | Zeile: <b>" + rowHRE + " RE</b>"
   );
 
-  /* ─── PowerPoint: Shapes erzeugen ─── */
+  showStatus("Erzeuge GANTT...", "info");
+
   PowerPoint.run(function (ctx) {
     var sel = ctx.presentation.getSelectedSlides();
     sel.load("items");
@@ -316,19 +350,18 @@ function buildGantt(ctx, slide, projStart, projEnd, unit, numUnits,
                     barColor, headColor, rowColor, totalDays) {
 
   var re   = gridUnitCm;
-  var x0   = c2p(GANTT_LEFT * re);   /* 8 RE vom linken Rand  */
-  var y0   = c2p(GANTT_TOP  * re);   /* 17 RE vom oberen Rand */
-  var lbW  = c2p(labelWRE * re);     /* Label-Spaltenbreite   */
-  var cW   = c2p(colWRE * re);       /* Spaltenbreite         */
-  var rH   = c2p(rowHRE * re);       /* Zeilenhöhe            */
-  var gap  = c2p(re);                /* 1 RE Abstand          */
+  var x0   = c2p(GANTT_LEFT * re);
+  var y0   = c2p(GANTT_TOP  * re);
+  var lbW  = c2p(labelWRE * re);
+  var cW   = c2p(colWRE * re);
+  var rH   = c2p(rowHRE * re);
+  var gap  = c2p(re);
 
   var curRow = 0;
 
-  /* ─── KOPFZEILE (Zeitachse) ─── */
+  /* ─── KOPFZEILE ─── */
   if (showHead) {
-    /* Leere Label-Zelle oben links */
-    var hdrLabel = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
+    var hdrLabel = slide.shapes.addGeometricShape(SHAPE_RECTANGLE);
     hdrLabel.left   = x0;
     hdrLabel.top    = y0;
     hdrLabel.width  = lbW;
@@ -338,9 +371,8 @@ function buildGantt(ctx, slide, projStart, projEnd, unit, numUnits,
     hdrLabel.lineFormat.weight = 0.3;
     hdrLabel.name = GANTT_TAG + "_hdr_label";
 
-    /* Zeiteinheit-Zellen */
     for (var u = 0; u < numUnits; u++) {
-      var hCell = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
+      var hCell = slide.shapes.addGeometricShape(SHAPE_RECTANGLE);
       hCell.left   = x0 + lbW + gap + u * (cW + gap);
       hCell.top    = y0;
       hCell.width  = cW;
@@ -350,17 +382,14 @@ function buildGantt(ctx, slide, projStart, projEnd, unit, numUnits,
       hCell.lineFormat.weight = 0.3;
       hCell.name = GANTT_TAG + "_hdr_" + u;
 
-      /* Label-Text: Woche/Monat/Quartal */
       var label = getUnitLabel(projStart, u, unit);
-      var tf = hCell.textFrame;
-      tf.autoSizeSetting = PowerPoint.ShapeAutoSize.none;
-      var tr = tf.textRange;
-      tr.text = label;
-      tr.font.size = 7;
-      tr.font.color = "FFFFFF";
-      tr.font.bold = true;
-      tf.verticalAlignment = PowerPoint.TextVerticalAlignment.middle;
-      tr.paragraphFormat.alignment = PowerPoint.ParagraphAlignment.center;
+      formatShapeText(hCell, label, {
+        fontSize: 7,
+        fontColor: "FFFFFF",
+        bold: true,
+        vAlign: VALIGN_MIDDLE,
+        pAlign: PALIGN_CENTER
+      });
     }
     curRow = 1;
   }
@@ -370,8 +399,8 @@ function buildGantt(ctx, slide, projStart, projEnd, unit, numUnits,
     var phase = phases[p];
     var rowY = y0 + curRow * (rH + gap);
 
-    /* Label-Zelle (Phasenname) */
-    var lb = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
+    /* Label-Zelle */
+    var lb = slide.shapes.addGeometricShape(SHAPE_RECTANGLE);
     lb.left   = x0;
     lb.top    = rowY;
     lb.width  = lbW;
@@ -381,19 +410,17 @@ function buildGantt(ctx, slide, projStart, projEnd, unit, numUnits,
     lb.lineFormat.weight = 0.3;
     lb.name = GANTT_TAG + "_label_" + p;
 
-    var lbTf = lb.textFrame;
-    lbTf.autoSizeSetting = PowerPoint.ShapeAutoSize.none;
-    var lbTr = lbTf.textRange;
-    lbTr.text = phase.name;
-    lbTr.font.size = 7;
-    lbTr.font.color = "333333";
-    lbTr.font.bold = true;
-    lbTf.verticalAlignment = PowerPoint.TextVerticalAlignment.middle;
-    lbTr.paragraphFormat.alignment = PowerPoint.ParagraphAlignment.left;
+    formatShapeText(lb, phase.name, {
+      fontSize: 7,
+      fontColor: "333333",
+      bold: true,
+      vAlign: VALIGN_MIDDLE,
+      pAlign: PALIGN_LEFT
+    });
 
-    /* Hintergrund-Zellen (Zeile) */
+    /* Hintergrund-Zellen */
     for (var u = 0; u < numUnits; u++) {
-      var bgCell = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
+      var bgCell = slide.shapes.addGeometricShape(SHAPE_RECTANGLE);
       bgCell.left   = x0 + lbW + gap + u * (cW + gap);
       bgCell.top    = rowY;
       bgCell.width  = cW;
@@ -404,11 +431,10 @@ function buildGantt(ctx, slide, projStart, projEnd, unit, numUnits,
       bgCell.name = GANTT_TAG + "_bg_" + p + "_" + u;
     }
 
-    /* ─── Balken (Phase) ─── */
+    /* ─── Balken ─── */
     var chartStartX = x0 + lbW + gap;
     var totalChartW = numUnits * (cW + gap) - gap;
 
-    /* Phase-Start relativ zum Projektstart */
     var pStartDay = daysBetween(projStart, phase.start);
     var pEndDay   = daysBetween(projStart, phase.end);
     if (pStartDay < 0) pStartDay = 0;
@@ -418,11 +444,10 @@ function buildGantt(ctx, slide, projStart, projEnd, unit, numUnits,
     var barXStart = chartStartX + (pStartDay / totalDays) * totalChartW;
     var barXEnd   = chartStartX + (pEndDay / totalDays) * totalChartW;
     var barW      = barXEnd - barXStart;
-    if (barW < c2p(re)) barW = c2p(re);  /* min 1 RE */
+    if (barW < c2p(re)) barW = c2p(re);
 
-    /* Balken etwas kleiner als Zeile (Padding) */
     var barPad = rH * 0.15;
-    var bar = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.roundedRectangle);
+    var bar = slide.shapes.addGeometricShape(SHAPE_ROUNDED_RECT);
     bar.left   = barXStart;
     bar.top    = rowY + barPad;
     bar.width  = barW;
@@ -444,7 +469,7 @@ function buildGantt(ctx, slide, projStart, projEnd, unit, numUnits,
       var todayX = chartStartX2 + (todayDay / totalDays) * totalChartW2;
       var totalH = curRow * (rH + gap);
 
-      var todayLine = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
+      var todayLine = slide.shapes.addGeometricShape(SHAPE_RECTANGLE);
       todayLine.left   = todayX;
       todayLine.top    = y0;
       todayLine.width  = c2p(0.05);
@@ -460,7 +485,7 @@ function buildGantt(ctx, slide, projStart, projEnd, unit, numUnits,
   });
 }
 
-/* ─── Zeiteinheit-Label erzeugen ─── */
+/* ─── Zeiteinheit-Label ─── */
 function getUnitLabel(start, idx, unit) {
   var d = new Date(start);
   if (unit === "week") {
