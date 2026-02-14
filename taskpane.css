@@ -1,107 +1,113 @@
-/* ===== DROEGE GANTT Generator – Slim Resize-Addin Design ===== */
+/* ===== DROEGE GANTT Generator – Slim Design ===== */
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:#1a1a2e;color:#e0e0e0;font-size:12px;overflow-y:auto;min-height:100vh}
-.app{max-width:300px;margin:0 auto;padding:6px}
+.app{max-width:280px;margin:0 auto;padding:5px 6px}
 
 /* HEADER */
-.hdr{display:flex;align-items:center;gap:6px;padding:4px 0 3px}
-.logo{font-size:18px;color:#e94560}
-.title{font-size:11px;color:#e0e0e0}
-.build{font-size:8px;color:#5a6a8a;margin-top:1px}
+.hdr{display:flex;align-items:center;gap:5px;padding:3px 0 2px}
+.logo{font-size:16px;color:#e94560}
+.title{font-size:10px;color:#e0e0e0;line-height:1.2}
+.build{font-size:7px;color:#5a6a8a;margin-top:1px}
 
-/* RASTEREINHEIT */
-.re-sec{display:flex;align-items:center;gap:3px;padding:3px 0}
-.lbl{font-size:10px;color:#8899aa;font-weight:600}
-.pre{padding:2px 5px;border:1px solid #2a2a4a;background:#16213e;color:#8899aa;border-radius:3px;cursor:pointer;font-size:10px;transition:all .12s}
+/* RE PRESETS */
+.re-sec{display:flex;align-items:center;gap:2px;padding:2px 0}
+.lbl{font-size:9px;color:#8899aa;font-weight:600}
+.pre{padding:1px 4px;border:1px solid #2a2a4a;background:#16213e;color:#8899aa;border-radius:3px;cursor:pointer;font-size:9px;transition:all .12s}
 .pre:hover{color:#e94560;border-color:#e94560}
 .pre.active{background:#e94560;color:#fff;border-color:#e94560}
-.unit{font-size:8px;color:#5a6a8a;margin-left:1px}
+.unit{font-size:7px;color:#5a6a8a;margin-left:1px}
 
 /* STATUS */
-.sts{padding:3px 6px;border-radius:4px;font-size:9px;font-weight:600;text-align:center;margin:3px 0;transition:all .15s}
+.sts{padding:2px 5px;border-radius:3px;font-size:8px;font-weight:600;text-align:center;margin:2px 0}
 .sts.info{background:#0a0e1a;color:#5a8abf}
 .sts.success{background:#0b2e1a;color:#2ecc71}
 .sts.error{background:#2e0a0a;color:#e74c3c}
 .sts.warning{background:#2e2a0a;color:#f39c12}
 
 /* SECTIONS */
-.sec{background:#16213e;border-radius:5px;padding:4px 6px;margin-bottom:4px}
-.sec-hdr{width:100%;display:flex;align-items:center;gap:4px;cursor:pointer;user-select:none;padding:1px 0;background:none;border:none;text-align:left}
+.sec{background:#16213e;border-radius:4px;padding:3px 5px;margin-bottom:3px}
+.sec-hdr{width:100%;display:flex;align-items:center;gap:3px;cursor:pointer;user-select:none;padding:1px 0;background:none;border:none;text-align:left}
 .sec-hdr:hover .sec-title{color:#ff6b81}
-.sec-title{font-size:10px;font-weight:700;color:#e94560;text-transform:uppercase;letter-spacing:.3px;transition:color .12s}
-.sec-toggle{margin-left:auto;font-size:9px;color:#5a6a8a;transition:transform .15s}
+.sec-title{font-size:9px;font-weight:700;color:#e94560;text-transform:uppercase;letter-spacing:.3px}
+.sec-toggle{margin-left:auto;font-size:8px;color:#5a6a8a}
 .sec-toggle::after{content:'▾'}
 .sec-hdr.is-collapsed .sec-toggle::after{content:'▸'}
 .sec-body{padding:2px 0 0}
 .sec-body.collapsed{display:none}
 
-/* FORM ELEMENTS */
-.form-row{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:2px 0}
-.form-lbl{font-size:9px;color:#8899aa;font-weight:600;white-space:nowrap}
+/* FORM */
+.form-row{display:flex;align-items:center;justify-content:space-between;gap:3px;padding:1px 0}
+.form-lbl{font-size:8px;color:#8899aa;font-weight:600;white-space:nowrap}
 .form-input{
-  width:120px;padding:2px 4px;
+  width:110px;padding:2px 3px;
   background:#0a0e1a;border:1px solid #2a2a4a;color:#e0e0e0;
-  border-radius:3px;font-size:10px;text-align:center;
+  border-radius:3px;font-size:9px;text-align:center;
 }
 .form-input:focus{border-color:#e94560;outline:none}
-select.form-input{cursor:pointer;text-align:left;padding:2px 3px}
+select.form-input{cursor:pointer;text-align:left;padding:2px 2px}
 select.form-input option{background:#0a0e1a;color:#e0e0e0}
 
 /* CHECKBOXES */
-.cb-row{display:flex;align-items:center;gap:6px;padding:2px 0}
+.cb-row{display:flex;align-items:center;gap:5px;padding:1px 0}
 .cb-row input[type="checkbox"]{
   appearance:none;-webkit-appearance:none;
-  width:12px;height:12px;
+  width:11px;height:11px;
   background:#0a0e1a;border:1px solid #2a2a4a;border-radius:2px;
   cursor:pointer;position:relative;flex-shrink:0;
 }
 .cb-row input[type="checkbox"]:checked{background:#e94560;border-color:#e94560}
 .cb-row input[type="checkbox"]:checked::after{
-  content:'✓';position:absolute;top:-2px;left:1px;
-  font-size:9px;color:#fff;font-weight:700;
+  content:'✓';position:absolute;top:-2px;left:1px;font-size:8px;color:#fff;font-weight:700;
 }
-.cb-row input[type="checkbox"]:focus{border-color:#e94560;outline:none}
-.cb-row label{font-size:9px;color:#8899aa;cursor:pointer}
+.cb-row label{font-size:8px;color:#8899aa;cursor:pointer}
 
 /* PHASE ROWS */
-.phase-row{display:flex;align-items:center;gap:3px;padding:3px 0;border-bottom:1px solid #0f1a30}
+.phase-row{display:flex;align-items:center;gap:2px;padding:3px 0;border-bottom:1px solid #0f1a30}
 .phase-row:last-child{border-bottom:none}
 .phase-num{
-  font-size:9px;font-weight:800;color:#fff;
-  background:#e94560;
-  width:16px;height:16px;
+  font-size:8px;font-weight:800;color:#fff;background:#e94560;
+  width:14px;height:14px;
   display:flex;align-items:center;justify-content:center;
-  border-radius:3px;flex-shrink:0;
+  border-radius:2px;flex-shrink:0;
 }
+.phase-fields{flex:1;display:flex;flex-direction:column;gap:2px;min-width:0}
+.phase-field-row{display:flex;align-items:center;gap:2px}
 .phase-name{
-  flex:1;min-width:0;padding:2px 4px;
+  flex:1;min-width:0;padding:2px 3px;
   background:#0a0e1a;border:1px solid #2a2a4a;color:#e0e0e0;
-  border-radius:3px;font-size:9px;
+  border-radius:3px;font-size:8px;
 }
 .phase-name:focus{border-color:#e94560;outline:none}
 .phase-date{
-  width:85px;padding:2px 3px;
+  width:76px;padding:2px 2px;
   background:#0a0e1a;border:1px solid #2a2a4a;color:#e0e0e0;
-  border-radius:3px;font-size:9px;
+  border-radius:3px;font-size:8px;flex-shrink:0;
 }
 .phase-date:focus{border-color:#e94560;outline:none}
-.phase-color{
-  width:22px;height:22px;border:1px solid #2a2a4a;
-  border-radius:3px;cursor:pointer;padding:0;background:none;
-  -webkit-appearance:none;appearance:none;
+.phase-color-wrap{display:flex;align-items:center;gap:2px;flex-shrink:0}
+.phase-swatch{
+  width:14px;height:14px;border-radius:2px;
+  border:1px solid #2a2a4a;flex-shrink:0;
+  cursor:pointer;
 }
-.phase-color::-webkit-color-swatch-wrapper{padding:1px}
-.phase-color::-webkit-color-swatch{border:none;border-radius:2px}
-.phase-color::-moz-color-swatch{border:none;border-radius:2px}
-
-/* BUTTON ROW */
-.btn-row{display:flex;gap:3px;margin-top:3px}
+.phase-color{
+  width:0;height:0;padding:0;border:none;
+  position:absolute;opacity:0;
+}
+.phase-hex{
+  width:52px;padding:2px 3px;
+  background:#0a0e1a;border:1px solid #2a2a4a;color:#e0e0e0;
+  border-radius:3px;font-size:8px;font-family:'Consolas','Courier New',monospace;
+  text-transform:uppercase;
+}
+.phase-hex:focus{border-color:#e94560;outline:none}
 
 /* BUTTONS */
+.btn-row{display:flex;gap:2px;margin-top:2px}
 .btn{
-  flex:1;height:26px;
-  border:none;border-radius:4px;
-  color:#fff;font-size:10px;font-weight:700;
+  flex:1;height:22px;
+  border:none;border-radius:3px;
+  color:#fff;font-size:9px;font-weight:700;
   cursor:pointer;transition:all .1s;
   display:flex;align-items:center;justify-content:center;
   background:linear-gradient(135deg,#2471a3,#2e86c1);
@@ -109,12 +115,11 @@ select.form-input option{background:#0a0e1a;color:#e0e0e0}
 .btn:hover{filter:brightness(1.25);transform:scale(1.03)}
 .btn:active{transform:scale(.96)}
 
-/* GENERATE BUTTON */
 .btn-generate{
-  width:100%;height:30px;margin-top:5px;
-  border:none;border-radius:4px;
+  width:100%;height:26px;margin-top:4px;
+  border:none;border-radius:3px;
   background:linear-gradient(135deg,#c0392b,#e94560);
-  color:#fff;font-size:11px;font-weight:700;
+  color:#fff;font-size:10px;font-weight:700;
   cursor:pointer;transition:all .12s;
   display:flex;align-items:center;justify-content:center;
   letter-spacing:.3px;

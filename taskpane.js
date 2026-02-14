@@ -1,45 +1,30 @@
-/* 
-   DROEGE GANTT Generator – taskpane.js
-   Build 14.02.2026
-   
-   Erzeugt GANTT-Diagramme direkt in PowerPoint als Shapes.
-   Alle Maße in Rastereinheiten (RE), Position immer ganzzahlig.
- */
+/*
+  DROEGE GANTT Generator – taskpane.js
+  Build 14.02.2026 v2
+  Farb-Zuweisung pro Phase via Swatch + Hex-Eingabe
+*/
 
-/* ══════════════════════════════════════════════════════════════
-   GLOBALS
-   ══════════════════════════════════════════════════════════════ */
-var gridUnitCm = 0.21;   /* FIX: Standard auf 0,21 cm */
+/* ── GLOBALS ── */
+var gridUnitCm = 0.21;
 var apiOk = false;
 
-/* Feste Diagramm-Position & Größe in RE */
-var GANTT_LEFT  = 8;
-var GANTT_TOP   = 17;
-var GANTT_MAX_W = 118;
-var GANTT_MAX_H = 69;
-
-/* Zeilenhöhe & Balkenhöhe in RE */
+var GANTT_LEFT   = 8;
+var GANTT_TOP    = 17;
+var GANTT_MAX_W  = 118;
+var GANTT_MAX_H  = 69;
 var ROW_HEIGHT_RE = 4;
 var BAR_HEIGHT_RE = 3;
 
-/* Farb-Palette für Phasen */
+/* Farb-Palette (12 unterscheidbare Farben) */
 var PHASE_COLORS = [
     "#2471A3", "#27AE60", "#8E44AD", "#E67E22",
     "#2980B9", "#1ABC9C", "#C0392B", "#D4AC0D",
-    "#16A085", "#E74C3C", "#3498DB", "#9B59B6"
+    "#16A085", "#E74C3C", "#3498DB", "#F39C12"
 ];
 
-/* ══════════════════════════════════════════════════════════════
-   KONVERTIERUNGEN
-   ══════════════════════════════════════════════════════════════ */
-function c2p(cm)  { return cm * 72 / 2.54; }
-function p2c(pt)  { return pt * 2.54 / 72; }
-function re2cm(re){ return re * gridUnitCm; }
-function re2pt(re){ return c2p(re * gridUnitCm); }
+var phaseCount = 0;
 
-/* ══════════════════════════════════════════════════════════════
-   OFFICE READY
-   ══════════════════════════════════════════════════════════════ */
+/* ── INIT ── */
 Office.onReady(function (info) {
     if (info.host === Office.HostType.PowerPoint) {
         try {
@@ -55,25 +40,26 @@ Office.onReady(function (info) {
     addPhaseRow();
 });
 
-/* ══════════════════════════════════════════════════════════════
-   UI INIT
-   ══════════════════════════════════════════════════════════════ */
+/* ── UI INIT ── */
 function initUI() {
-    /* Rastereinheit Presets */
-    document.querySelectorAll(".pre").forEach(function (b) {
-        b.addEventListener("click", function () {
-            gridUnitCm = parseFloat(this.dataset.v);
-            document.querySelectorAll(".pre").forEach(function (p) { p.classList.remove("active"); });
+    /* RE Preset Buttons */
+    var preButtons = document.querySelectorAll(".pre");
+    for (var i = 0; i < preButtons.length; i++) {
+        preButtons[i].addEventListener("click", function () {
+            for (var j = 0; j < preButtons.length; j++) preButtons[j].classList.remove("active");
             this.classList.add("active");
-            showStatus("RE = " + gridUnitCm.toFixed(2) + " cm", "info");
+            gridUnitCm = parseFloat(this.getAttribute("data-v"));
+            showStatus("RE = " + gridUnitCm + " cm", "info");
         });
-    });
+    }
 
     /* Position & Größe Inputs */
     var leftEl = document.getElementById("ganttLeft");
     var topEl  = document.getElementById("ganttTop");
     var maxWEl = document.getElementById("ganttMaxW");
     var maxHEl = document.getElementById("ganttMaxH");
+    var rowHEl = document.getElementById("rowHeightRE");
+    var barHEl = document.getElementById("barHeightRE");
 
     if (leftEl) leftEl.addEventListener("change", function () {
         var v = parseInt(this.value); if (!isNaN(v) && v >= 0) GANTT_LEFT = v;
@@ -82,22 +68,17 @@ function initUI() {
         var v = parseInt(this.value); if (!isNaN(v) && v >= 0) GANTT_TOP = v;
     });
     if (maxWEl) maxWEl.addEventListener("change", function () {
-        var v = parseInt(this.value); if (!isNaN(v) && v > 0) GANTT_MAX_W = v;
+        var v = parseInt(this.value); if (!isNaN(v) && v >= 10) GANTT_MAX_W = v;
     });
     if (maxHEl) maxHEl.addEventListener("change", function () {
-        var v = parseInt(this.value); if (!isNaN(v) && v > 0) GANTT_MAX_H = v;
+        var v = parseInt(this.value); if (!isNaN(v) && v >= 10) GANTT_MAX_H = v;
     });
-
-    /* Zeilenhöhe & Balkenhöhe Inputs */
-    var rowHEl = document.getElementById("rowHeightRE");
-    var barHEl = document.getElementById("barHeightRE");
-
     if (rowHEl) rowHEl.addEventListener("change", function () {
         var v = parseInt(this.value);
         if (!isNaN(v) && v >= 2) {
             ROW_HEIGHT_RE = v;
-            if (BAR_HEIGHT_RE >= ROW_HEIGHT_RE) {
-                BAR_HEIGHT_RE = ROW_HEIGHT_RE - 1;
+            if (BAR_HEIGHT_RE >= v) {
+                BAR_HEIGHT_RE = v - 1;
                 var be = document.getElementById("barHeightRE");
                 if (be) be.value = BAR_HEIGHT_RE;
             }
@@ -107,9 +88,8 @@ function initUI() {
         var v = parseInt(this.value);
         if (!isNaN(v) && v >= 1) {
             if (v >= ROW_HEIGHT_RE) {
-                showStatus("Balkenhöhe muss kleiner als Zeilenhöhe sein!", "warning");
-                this.value = ROW_HEIGHT_RE - 1;
-                BAR_HEIGHT_RE = ROW_HEIGHT_RE - 1;
+                showStatus("Balkenhöhe muss kleiner als Zeilenhöhe sein", "warning");
+                this.value = BAR_HEIGHT_RE;
             } else {
                 BAR_HEIGHT_RE = v;
             }
@@ -117,96 +97,204 @@ function initUI() {
     });
 
     /* Phase Buttons */
-    document.getElementById("addPhase").addEventListener("click", function () { addPhaseRow(); });
-    document.getElementById("removePhase").addEventListener("click", function () { removeLastPhase(); });
-
-    /* Generate Button */
-    document.getElementById("generateGantt").addEventListener("click", function () { generateGantt(); });
+    document.getElementById("addPhase").addEventListener("click", addPhaseRow);
+    document.getElementById("removePhase").addEventListener("click", removeLastPhase);
+    document.getElementById("generateGantt").addEventListener("click", generateGantt);
 }
 
-/* ══════════════════════════════════════════════════════════════
-   STATUS
-   ══════════════════════════════════════════════════════════════ */
+/* ── STATUS ── */
 function showStatus(msg, type) {
     var el = document.getElementById("status");
     el.textContent = msg;
     el.className = "sts " + (type || "info");
 }
 
-/* ══════════════════════════════════════════════════════════════
-   DEFAULT DATES
-   ══════════════════════════════════════════════════════════════ */
+/* ── DATES ── */
 function setDefaultDates() {
-    var now   = new Date();
+    var now = new Date();
     var start = new Date(now.getFullYear(), now.getMonth(), 1);
     var end   = new Date(now.getFullYear(), now.getMonth() + 6, 0);
-    document.getElementById("startDate").value = formatDate(start);
-    document.getElementById("endDate").value   = formatDate(end);
+    document.getElementById("startDate").value = fmtDate(start);
+    document.getElementById("endDate").value   = fmtDate(end);
 }
 
-function formatDate(d) {
-    var m   = (d.getMonth() + 1).toString();
-    if (m.length < 2) m = "0" + m;
-    var day = d.getDate().toString();
-    if (day.length < 2) day = "0" + day;
+function fmtDate(d) {
+    var m = (d.getMonth() + 1).toString(); if (m.length < 2) m = "0" + m;
+    var day = d.getDate().toString();       if (day.length < 2) day = "0" + day;
     return d.getFullYear() + "-" + m + "-" + day;
 }
 
-/* ══════════════════════════════════════════════════════════════
-   PHASE MANAGEMENT
-   ══════════════════════════════════════════════════════════════ */
-var phaseCount = 0;
+/* ═══════════════════════════════════════════════════════════
+   PHASE ROWS – mit Swatch + Hex-Input + native Color-Picker
+   ═══════════════════════════════════════════════════════════ */
+
+function normalizeHex(raw) {
+    /* Eingabe: "#abc", "abc", "#AABBCC", "aabbcc", etc.
+       Ausgabe: 6-stellig UPPERCASE ohne # */
+    var hex = raw.replace(/^#/, "").toUpperCase();
+    if (hex.length === 3) hex = hex[0]+hex[0] + hex[1]+hex[1] + hex[2]+hex[2];
+    if (!/^[0-9A-F]{6}$/.test(hex)) return null;
+    return hex;
+}
 
 function addPhaseRow() {
     phaseCount++;
-    var idx       = phaseCount;
+    var idx = phaseCount;
     var container = document.getElementById("phaseContainer");
-    var color     = PHASE_COLORS[(idx - 1) % PHASE_COLORS.length];
-
+    var defaultColor = PHASE_COLORS[(idx - 1) % PHASE_COLORS.length];
     var startD = document.getElementById("startDate").value;
     var endD   = document.getElementById("endDate").value;
 
+    /* Zeile */
     var div = document.createElement("div");
     div.className = "phase-row";
     div.id = "phase_" + idx;
-    div.innerHTML =
-        '<span class="phase-num">' + idx + '</span>' +
-        '<input type="text" class="phase-name" placeholder="Phase ' + idx + '" value="Phase ' + idx + '"/>' +
-        '<input type="date" class="phase-date phase-start" value="' + startD + '"/>' +
-        '<input type="date" class="phase-date phase-end" value="' + endD + '"/>' +
-        '<input type="color" class="phase-color" value="' + color + '"/>';
+
+    /* Nummer-Badge */
+    var num = document.createElement("span");
+    num.className = "phase-num";
+    num.textContent = idx;
+    div.appendChild(num);
+
+    /* Felder-Container */
+    var fields = document.createElement("div");
+    fields.className = "phase-fields";
+
+    /* Zeile 1: Name + Farbe */
+    var row1 = document.createElement("div");
+    row1.className = "phase-field-row";
+
+    var nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.className = "phase-name";
+    nameInput.placeholder = "Phase " + idx;
+    nameInput.value = "Phase " + idx;
+    row1.appendChild(nameInput);
+
+    /* Farb-Wrapper: Swatch (klickbar) + versteckter Color-Picker + Hex-Input */
+    var colorWrap = document.createElement("div");
+    colorWrap.className = "phase-color-wrap";
+
+    /* Swatch (visuelles Farbquadrat) */
+    var swatch = document.createElement("div");
+    swatch.className = "phase-swatch";
+    swatch.style.backgroundColor = defaultColor;
+    swatch.title = "Klicken für Farbwahl";
+    colorWrap.appendChild(swatch);
+
+    /* Nativer Color-Picker (versteckt, wird via Swatch-Klick geöffnet) */
+    var colorPicker = document.createElement("input");
+    colorPicker.type = "color";
+    colorPicker.className = "phase-color";
+    colorPicker.value = defaultColor;
+    colorWrap.appendChild(colorPicker);
+
+    /* Hex-Eingabe */
+    var hexInput = document.createElement("input");
+    hexInput.type = "text";
+    hexInput.className = "phase-hex";
+    hexInput.value = defaultColor.replace("#", "");
+    hexInput.maxLength = 6;
+    hexInput.placeholder = "HEX";
+    colorWrap.appendChild(hexInput);
+
+    row1.appendChild(colorWrap);
+    fields.appendChild(row1);
+
+    /* Zeile 2: Start + End Date */
+    var row2 = document.createElement("div");
+    row2.className = "phase-field-row";
+
+    var startInput = document.createElement("input");
+    startInput.type = "date";
+    startInput.className = "phase-date phase-start";
+    startInput.value = startD;
+    row2.appendChild(startInput);
+
+    var endInput = document.createElement("input");
+    endInput.type = "date";
+    endInput.className = "phase-date phase-end";
+    endInput.value = endD;
+    row2.appendChild(endInput);
+
+    fields.appendChild(row2);
+    div.appendChild(fields);
     container.appendChild(div);
+
+    /* ── EVENT: Swatch klicken → Color-Picker öffnen ── */
+    swatch.addEventListener("click", function () {
+        colorPicker.click();
+    });
+
+    /* ── EVENT: Color-Picker ändert → Swatch + Hex synchronisieren ── */
+    colorPicker.addEventListener("input", function () {
+        var c = this.value;
+        swatch.style.backgroundColor = c;
+        hexInput.value = c.replace("#", "").toUpperCase();
+    });
+    colorPicker.addEventListener("change", function () {
+        var c = this.value;
+        swatch.style.backgroundColor = c;
+        hexInput.value = c.replace("#", "").toUpperCase();
+    });
+
+    /* ── EVENT: Hex-Input ändert → Swatch + Color-Picker synchronisieren ── */
+    hexInput.addEventListener("input", function () {
+        var norm = normalizeHex(this.value);
+        if (norm) {
+            swatch.style.backgroundColor = "#" + norm;
+            colorPicker.value = "#" + norm.toLowerCase();
+        }
+    });
+    hexInput.addEventListener("change", function () {
+        var norm = normalizeHex(this.value);
+        if (norm) {
+            this.value = norm;
+            swatch.style.backgroundColor = "#" + norm;
+            colorPicker.value = "#" + norm.toLowerCase();
+        } else {
+            /* Ungültig → Reset auf aktuelle Picker-Farbe */
+            var cur = colorPicker.value.replace("#", "").toUpperCase();
+            this.value = cur;
+            showStatus("Ungültiger Hex-Wert, zurückgesetzt", "warning");
+        }
+    });
 }
 
 function removeLastPhase() {
-    if (phaseCount <= 1) { showStatus("Mind. 1 Phase nötig!", "warning"); return; }
-    var el = document.getElementById("phase_" + phaseCount);
-    if (el) el.remove();
+    if (phaseCount <= 1) { showStatus("Mindestens 1 Phase nötig", "warning"); return; }
+    var row = document.getElementById("phase_" + phaseCount);
+    if (row) row.remove();
     phaseCount--;
 }
 
+/* ═══════════════════════════════════════════════
+   PHASEN AUSLESEN – Farbe robust aus Hex-Input
+   ═══════════════════════════════════════════════ */
 function getPhases() {
     var phases = [];
     for (var i = 1; i <= phaseCount; i++) {
         var row = document.getElementById("phase_" + i);
         if (!row) continue;
+
         var name  = row.querySelector(".phase-name").value || ("Phase " + i);
         var start = row.querySelector(".phase-start").value;
         var end   = row.querySelector(".phase-end").value;
-        var colorEl = row.querySelector(".phase-color");
         if (!start || !end) continue;
 
-        /* ── FARB-FIX ──
-           input[type=color].value liefert immer "#rrggbb" (lowercase).
-           PowerPoint setSolidColor() braucht 6-stellig UPPERCASE OHNE #. */
-        var rawColor = (colorEl && colorEl.value) ? colorEl.value : "#2471A3";
-        var hex = rawColor.replace(/^#/, "").toUpperCase();
-        if (hex.length === 3) {
-            hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+        /* Farbe: Zuerst Hex-Input lesen (ist immer synchron zum Picker) */
+        var hexEl    = row.querySelector(".phase-hex");
+        var pickerEl = row.querySelector(".phase-color");
+
+        var hex;
+        if (hexEl && hexEl.value) {
+            hex = normalizeHex(hexEl.value);
         }
-        /* Fallback: wenn kein gültiger Hex */
-        if (!/^[0-9A-F]{6}$/.test(hex)) {
-            hex = "2471A3";
+        if (!hex && pickerEl && pickerEl.value) {
+            hex = normalizeHex(pickerEl.value);
+        }
+        if (!hex) {
+            hex = normalizeHex(PHASE_COLORS[(i - 1) % PHASE_COLORS.length]);
         }
 
         phases.push({
@@ -219,146 +307,89 @@ function getPhases() {
     return phases;
 }
 
-/* ══════════════════════════════════════════════════════════════
-   ZEITEINHEITEN-BERECHNUNG
-   ══════════════════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════════
+   TIME SLOTS
+   ═══════════════════════════════════════════════ */
 function getTimeSlots(startDate, endDate, unit) {
     var slots = [];
-    var d;
-
-    if (unit === "days") {
-        d = new Date(startDate);
-        while (d <= endDate) {
-            var next = new Date(d);
-            next.setDate(next.getDate() + 1);
-            slots.push({
-                label: d.getDate() + "." + (d.getMonth() + 1) + ".",
-                start: new Date(d),
-                end:   new Date(next)
-            });
-            d = next;
-        }
-    }
-    else if (unit === "weeks") {
-        d = new Date(startDate);
-        var dow  = d.getDay();
-        var diff = (dow === 0) ? -6 : 1 - dow;
-        d.setDate(d.getDate() + diff);
-        while (d <= endDate) {
-            var wEnd = new Date(d);
-            wEnd.setDate(wEnd.getDate() + 7);
-            var kw = getISOWeek(d);
-            slots.push({
-                label: "KW" + kw,
-                start: new Date(d),
-                end:   new Date(wEnd)
-            });
-            d = wEnd;
-        }
-    }
-    else if (unit === "months") {
-        d = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
-        while (d <= endDate) {
-            var mEnd   = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+    var d = new Date(startDate.getTime());
+    while (d < endDate) {
+        var label, slotEnd;
+        if (unit === "days") {
+            label = d.getDate() + "." + (d.getMonth() + 1) + ".";
+            slotEnd = new Date(d); slotEnd.setDate(slotEnd.getDate() + 1);
+        } else if (unit === "weeks") {
+            label = "KW " + getISOWeek(d);
+            slotEnd = new Date(d); slotEnd.setDate(slotEnd.getDate() + 7);
+        } else if (unit === "months") {
             var mNames = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
-            slots.push({
-                label: mNames[d.getMonth()] + " " + d.getFullYear().toString().substr(2),
-                start: new Date(d),
-                end:   new Date(mEnd)
-            });
-            d = mEnd;
+            label = mNames[d.getMonth()] + " " + d.getFullYear().toString().substr(2);
+            slotEnd = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+        } else {
+            var q = Math.floor(d.getMonth() / 3) + 1;
+            label = "Q" + q + "/" + d.getFullYear().toString().substr(2);
+            slotEnd = new Date(d.getFullYear(), d.getMonth() + 3, 1);
         }
+        slots.push({ label: label, start: new Date(d), end: slotEnd });
+        d = slotEnd;
     }
-    else if (unit === "quarters") {
-        var qStart = new Date(startDate.getFullYear(), Math.floor(startDate.getMonth() / 3) * 3, 1);
-        d = qStart;
-        while (d <= endDate) {
-            var qEnd = new Date(d.getFullYear(), d.getMonth() + 3, 1);
-            var qNum = Math.floor(d.getMonth() / 3) + 1;
-            slots.push({
-                label: "Q" + qNum + "/" + d.getFullYear().toString().substr(2),
-                start: new Date(d),
-                end:   new Date(qEnd)
-            });
-            d = qEnd;
-        }
-    }
-
     return slots;
 }
 
 function getISOWeek(date) {
-    var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
-    var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
-    return weekNo;
+    var d = new Date(date.getTime());
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+    var week1 = new Date(d.getFullYear(), 0, 4);
+    return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
 }
 
-/* ══════════════════════════════════════════════════════════════
-   GENERATE GANTT
-   ══════════════════════════════════════════════════════════════ */
-function generateGantt() {
-    var startDate = new Date(document.getElementById("startDate").value);
-    var endDate   = new Date(document.getElementById("endDate").value);
-    var unit      = document.getElementById("timeUnit").value;
+/* ═══════════════════════════════════════════════
+   RE → Points Conversion
+   ═══════════════════════════════════════════════ */
+function re2pt(re) {
+    return Math.round(re * gridUnitCm * 72 / 2.54);
+}
 
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        showStatus("Bitte Start- und Enddatum eingeben!", "error");
-        return;
-    }
-    if (endDate <= startDate) {
-        showStatus("Enddatum muss nach Startdatum liegen!", "error");
+/* ═══════════════════════════════════════════════
+   GENERATE GANTT
+   ═══════════════════════════════════════════════ */
+function generateGantt() {
+    if (!apiOk) {
+        showStatus("PowerPoint API nicht verfügbar", "error");
         return;
     }
 
     var phases = getPhases();
     if (phases.length === 0) {
-        showStatus("Bitte mindestens eine Phase anlegen!", "error");
+        showStatus("Keine gültigen Phasen definiert", "error");
         return;
     }
 
+    var startDate = new Date(document.getElementById("startDate").value);
+    var endDate   = new Date(document.getElementById("endDate").value);
+    if (isNaN(startDate) || isNaN(endDate) || endDate <= startDate) {
+        showStatus("Ungültiger Zeitraum", "error");
+        return;
+    }
+
+    var unit = document.getElementById("timeUnit").value;
     var timeSlots = getTimeSlots(startDate, endDate, unit);
-    if (timeSlots.length === 0) {
-        showStatus("Keine Zeiteinheiten berechenbar!", "error");
+    if (timeSlots.length === 0 || timeSlots.length > 200) {
+        showStatus("Zu viele / zu wenige Zeitabschnitte (" + timeSlots.length + ")", "error");
         return;
     }
 
-    var showToday     = document.getElementById("showToday").checked;
     var showHeader    = document.getElementById("showHeader").checked;
     var showLabels    = document.getElementById("showLabels").checked;
     var showGridLines = document.getElementById("showGridLines").checked;
+    var showToday     = document.getElementById("showToday").checked;
 
-    /* Position & Größe aus Inputs */
-    var leftEl = document.getElementById("ganttLeft");
-    var topEl  = document.getElementById("ganttTop");
-    var maxWEl = document.getElementById("ganttMaxW");
-    var maxHEl = document.getElementById("ganttMaxH");
-    if (leftEl) GANTT_LEFT = parseInt(leftEl.value) || GANTT_LEFT;
-    if (topEl)  GANTT_TOP  = parseInt(topEl.value)  || GANTT_TOP;
-    if (maxWEl) GANTT_MAX_W = parseInt(maxWEl.value) || GANTT_MAX_W;
-    if (maxHEl) GANTT_MAX_H = parseInt(maxHEl.value) || GANTT_MAX_H;
-
-    /* Zeilen-/Balkenhöhe aus Inputs */
-    ROW_HEIGHT_RE = parseInt(document.getElementById("rowHeightRE").value) || 4;
-    BAR_HEIGHT_RE = parseInt(document.getElementById("barHeightRE").value) || 3;
-    if (BAR_HEIGHT_RE >= ROW_HEIGHT_RE) BAR_HEIGHT_RE = ROW_HEIGHT_RE - 1;
-    if (BAR_HEIGHT_RE < 1) BAR_HEIGHT_RE = 1;
-
-    /* Layout-Berechnung in RE (ganzzahlig) */
-    var labelWidthRE = showLabels ? Math.floor(GANTT_MAX_W * 0.15) : 0;
-    if (labelWidthRE < 8 && showLabels) labelWidthRE = 8;
-
-    var chartWidthRE   = GANTT_MAX_W - labelWidthRE;
-    var headerHeightRE = showHeader ? 3 : 0;
-
-    /* Spaltenbreite in RE – mindestens 1 RE pro Slot */
-    var colWidthRE = Math.max(1, Math.floor(chartWidthRE / timeSlots.length));
-    var actualChartWidthRE = colWidthRE * timeSlots.length;
-    if (actualChartWidthRE > chartWidthRE) {
-        colWidthRE = Math.floor(chartWidthRE / timeSlots.length);
-        actualChartWidthRE = colWidthRE * timeSlots.length;
-    }
+    var labelWidthRE    = showLabels ? 15 : 0;
+    var headerHeightRE  = showHeader ? 3 : 0;
+    var chartWidthRE    = GANTT_MAX_W - labelWidthRE;
+    var slotWidthRE     = Math.max(1, Math.round(chartWidthRE / timeSlots.length));
+    chartWidthRE        = slotWidthRE * timeSlots.length;
 
     var rowHeightRE = ROW_HEIGHT_RE;
     var barHeightRE = BAR_HEIGHT_RE;
@@ -370,102 +401,67 @@ function generateGantt() {
 
     showStatus("Erstelle GANTT... " + timeSlots.length + " Spalten, " + phases.length + " Phasen", "info");
 
-    /* PowerPoint Shapes erzeugen */
-    PowerPoint.run(function (ctx) {
-        var sel = ctx.presentation.getSelectedSlides();
-        sel.load("items");
-
-        return ctx.sync().then(function () {
-            var slide;
-            if (sel.items.length > 0) {
-                slide = sel.items[0];
-            } else {
-                var slides = ctx.presentation.slides;
-                slides.load("items");
-                return ctx.sync().then(function () {
-                    if (slides.items.length === 0) {
-                        showStatus("Keine Folie gefunden!", "error");
-                        return ctx.sync();
-                    }
-                    slide = slides.items[0];
-                    return buildGantt(ctx, slide, timeSlots, phases, {
-                        startDate: startDate, endDate: endDate, unit: unit,
-                        labelWidthRE: labelWidthRE, chartWidthRE: actualChartWidthRE,
-                        headerHeightRE: headerHeightRE, rowHeightRE: rowHeightRE,
-                        barHeightRE: barHeightRE, colWidthRE: colWidthRE,
-                        showToday: showToday, showHeader: showHeader,
-                        showLabels: showLabels, showGridLines: showGridLines
-                    });
-                });
-            }
-            return buildGantt(ctx, slide, timeSlots, phases, {
-                startDate: startDate, endDate: endDate, unit: unit,
-                labelWidthRE: labelWidthRE, chartWidthRE: actualChartWidthRE,
-                headerHeightRE: headerHeightRE, rowHeightRE: rowHeightRE,
-                barHeightRE: barHeightRE, colWidthRE: colWidthRE,
-                showToday: showToday, showHeader: showHeader,
-                showLabels: showLabels, showGridLines: showGridLines
+    PowerPoint.run(function (context) {
+        var slide = context.presentation.getSelectedSlides().getItemAt(0);
+        slide.load("id");
+        return context.sync().then(function () {
+            buildGantt(slide, phases, timeSlots, {
+                x0: GANTT_LEFT, y0: GANTT_TOP,
+                labelWidthRE: labelWidthRE, headerHeightRE: headerHeightRE,
+                chartWidthRE: chartWidthRE, slotWidthRE: slotWidthRE,
+                rowHeightRE: rowHeightRE, barHeightRE: barHeightRE,
+                startDate: startDate, endDate: endDate,
+                showHeader: showHeader, showLabels: showLabels,
+                showGridLines: showGridLines, showToday: showToday
             });
+            return context.sync();
+        }).then(function () {
+            showStatus("GANTT erfolgreich erstellt!", "success");
         });
     }).catch(function (e) {
         showStatus("Fehler: " + e.message, "error");
     });
 }
 
-/* ══════════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════
    BUILD GANTT – Shapes auf Folie erzeugen
-   ══════════════════════════════════════════════════════════════ */
-function buildGantt(ctx, slide, timeSlots, phases, cfg) {
-    var x0 = GANTT_LEFT;
-    var y0 = GANTT_TOP;
-
+   ═══════════════════════════════════════════════ */
+function buildGantt(slide, phases, timeSlots, cfg) {
+    var x0 = cfg.x0;
+    var y0 = cfg.y0;
     var chartX0 = x0 + cfg.labelWidthRE;
     var chartY0 = y0 + cfg.headerHeightRE;
 
-    var totalMs = cfg.endDate.getTime() - cfg.startDate.getTime();
-
-    /* ────────────────────────────────────────────
-       1) HINTERGRUND
-       ──────────────────────────────────────────── */
-    var bgW = cfg.labelWidthRE + cfg.chartWidthRE;
-    var bgH = cfg.headerHeightRE + (cfg.rowHeightRE * phases.length);
-    var bg  = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
+    /*
+      1) HINTERGRUND (WEISS)
+    */
+    var totalW = cfg.labelWidthRE + cfg.chartWidthRE;
+    var totalH = cfg.headerHeightRE + (cfg.rowHeightRE * phases.length);
+    var bg = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
     bg.left   = re2pt(x0);
     bg.top    = re2pt(y0);
-    bg.width  = re2pt(bgW);
-    bg.height = re2pt(bgH);
+    bg.width  = re2pt(totalW);
+    bg.height = re2pt(totalH);
     bg.fill.setSolidColor("FFFFFF");
     bg.lineFormat.visible = false;
     bg.name = "GANTT_BG";
 
-    /* ────────────────────────────────────────────
-       2) HEADER-ZEILE (Zeiteinheiten)
-       ──────────────────────────────────────────── */
+    /*
+      2) HEADER (Zeitslot-Beschriftungen)
+    */
     if (cfg.showHeader) {
-        /* Header-Hintergrund */
-        var hdr = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
-        hdr.left   = re2pt(chartX0);
-        hdr.top    = re2pt(y0);
-        hdr.width  = re2pt(cfg.chartWidthRE);
-        hdr.height = re2pt(cfg.headerHeightRE);
-        hdr.fill.setSolidColor("1A1A2E");
-        hdr.lineFormat.visible = false;
-        hdr.name = "GANTT_HDR_BG";
-
-        /* Header Labels */
         for (var h = 0; h < timeSlots.length; h++) {
-            var hx  = chartX0 + (h * cfg.colWidthRE);
+            var hx = chartX0 + (h * cfg.slotWidthRE);
             var htb = slide.shapes.addTextBox(timeSlots[h].label, {
                 left:   re2pt(hx),
                 top:    re2pt(y0),
-                width:  re2pt(cfg.colWidthRE),
+                width:  re2pt(cfg.slotWidthRE),
                 height: re2pt(cfg.headerHeightRE)
             });
             htb.name = "GANTT_HDR_" + h;
             htb.textFrame.autoSizeSetting = PowerPoint.ShapeAutoSize.autoSizeNone;
-            htb.textFrame.textRange.font.size  = 7;
-            htb.textFrame.textRange.font.color = "FFFFFF";
-            htb.textFrame.textRange.font.bold  = true;
+            htb.textFrame.textRange.font.size = 6;
+            htb.textFrame.textRange.font.color = "1A1A2E";
             htb.textFrame.textRange.paragraphFormat.horizontalAlignment =
                 PowerPoint.ParagraphHorizontalAlignment.center;
             htb.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middleCentered;
@@ -474,12 +470,12 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
         }
     }
 
-    /* ────────────────────────────────────────────
-       3) LABELS links (Phasennamen)
-       ──────────────────────────────────────────── */
+    /*
+      3) LABELS links (Phasennamen)
+    */
     if (cfg.showLabels) {
         for (var l = 0; l < phases.length; l++) {
-            var ly  = chartY0 + (l * cfg.rowHeightRE);
+            var ly = chartY0 + (l * cfg.rowHeightRE);
             var ltb = slide.shapes.addTextBox(phases[l].name, {
                 left:   re2pt(x0),
                 top:    re2pt(ly),
@@ -488,9 +484,9 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
             });
             ltb.name = "GANTT_LBL_" + l;
             ltb.textFrame.autoSizeSetting = PowerPoint.ShapeAutoSize.autoSizeNone;
-            ltb.textFrame.textRange.font.size  = 8;
+            ltb.textFrame.textRange.font.size = 8;
             ltb.textFrame.textRange.font.color = "1A1A2E";
-            ltb.textFrame.textRange.font.bold  = true;
+            ltb.textFrame.textRange.font.bold = true;
             ltb.textFrame.textRange.paragraphFormat.horizontalAlignment =
                 PowerPoint.ParagraphHorizontalAlignment.left;
             ltb.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middleCentered;
@@ -499,31 +495,31 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
         }
     }
 
-    /* ────────────────────────────────────────────
-       4) ZEILEN-HINTERGRUND (abwechselnd) → ENTFERNT
-       ──────────────────────────────────────────── */
+    /*
+      4) (reserviert)
+    */
 
-    /* ────────────────────────────────────────────
-       5) VERTIKALE RASTERLINIEN
-       ──────────────────────────────────────────── */
+    /*
+      5) VERTIKALE RASTERLINIEN
+    */
     if (cfg.showGridLines) {
         var gridH = cfg.headerHeightRE + (cfg.rowHeightRE * phases.length);
         for (var g = 0; g <= timeSlots.length; g++) {
-            var gx = chartX0 + (g * cfg.colWidthRE);
-            var gl = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
-            gl.left   = re2pt(gx);
-            gl.top    = re2pt(y0);
-            gl.width  = c2p(0.02);
-            gl.height = re2pt(gridH);
-            gl.fill.setSolidColor("B0B0B0");
-            gl.lineFormat.visible = false;
+            var gx = chartX0 + (g * cfg.slotWidthRE);
+            var gl = slide.shapes.addLine(
+                PowerPoint.ConnectorType.straight,
+                { left: re2pt(gx), top: re2pt(y0), width: 0, height: re2pt(gridH) }
+            );
             gl.name = "GANTT_GRID_" + g;
+            gl.lineFormat.color = "D5D8DC";
+            gl.lineFormat.weight = 0.5;
         }
     }
 
-    /* ────────────────────────────────────────────
-       6) GANTT-BALKEN (Phasen)
-       ──────────────────────────────────────────── */
+    /*
+      6) GANTT-BALKEN (Phasen) – JEDE PHASE MIT EIGENER FARBE
+    */
+    var totalMs = cfg.endDate.getTime() - cfg.startDate.getTime();
     for (var p = 0; p < phases.length; p++) {
         var phase = phases[p];
 
@@ -535,7 +531,6 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
         /* Position in RE berechnen (ganzzahlig) */
         var startRatio = (pStart - cfg.startDate.getTime()) / totalMs;
         var endRatio   = (pEnd   - cfg.startDate.getTime()) / totalMs;
-
         var barLeftRE  = Math.round(startRatio * cfg.chartWidthRE);
         var barRightRE = Math.round(endRatio   * cfg.chartWidthRE);
         var barWidthRE = Math.max(1, barRightRE - barLeftRE);
@@ -545,24 +540,25 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
         var barYOffset = Math.floor((cfg.rowHeightRE - cfg.barHeightRE) / 2);
         var barY       = rowY + barYOffset;
 
-        /* Balken-Shape mit Phasenfarbe
-           FIX: phase.color ist bereits ohne # (durch getPhases) */
+        /* Balken-Shape erzeugen */
         var bar = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.roundedRectangle);
         bar.left   = re2pt(chartX0 + barLeftRE);
         bar.top    = re2pt(barY);
         bar.width  = re2pt(barWidthRE);
         bar.height = re2pt(cfg.barHeightRE);
-        /* FARB-FIX: Farbe explizit als 6-stelligen Hex-String übergeben */
-            try {
-                bar.fill.setSolidColor(phase.color);
-            } catch(colorErr) {
-                bar.fill.setSolidColor("2471A3");
-            }
+
+        /* ── FARBE SETZEN: phase.color ist bereits 6-stellig UPPERCASE ── */
+        try {
+            bar.fill.setSolidColor(phase.color);
+        } catch (colorErr) {
+            bar.fill.setSolidColor("2471A3");
+        }
+
         bar.lineFormat.visible = false;
         bar.name = "GANTT_BAR_" + p;
 
         /* Balken-Text (Phasenname auf dem Balken) */
-        if (barWidthRE >= 4) {
+        if (barWidthRE >= 5) {
             var barTb = slide.shapes.addTextBox(phase.name, {
                 left:   re2pt(chartX0 + barLeftRE),
                 top:    re2pt(barY),
@@ -571,9 +567,9 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
             });
             barTb.name = "GANTT_BARTXT_" + p;
             barTb.textFrame.autoSizeSetting = PowerPoint.ShapeAutoSize.autoSizeNone;
-            barTb.textFrame.textRange.font.size  = 7;
+            barTb.textFrame.textRange.font.size = 7;
             barTb.textFrame.textRange.font.color = "FFFFFF";
-            barTb.textFrame.textRange.font.bold  = true;
+            barTb.textFrame.textRange.font.bold = true;
             barTb.textFrame.textRange.paragraphFormat.horizontalAlignment =
                 PowerPoint.ParagraphHorizontalAlignment.center;
             barTb.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middleCentered;
@@ -582,47 +578,23 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
         }
     }
 
-    /* ────────────────────────────────────────────
-       7) HEUTE-LINIE (rot, vertikal)
-       ──────────────────────────────────────────── */
+    /*
+      7) HEUTE-LINIE
+    */
     if (cfg.showToday) {
-        var today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (today >= cfg.startDate && today <= cfg.endDate) {
-            var todayRatio = (today.getTime() - cfg.startDate.getTime()) / totalMs;
-            var todayRE    = Math.round(todayRatio * cfg.chartWidthRE);
-            var todayX     = chartX0 + todayRE;
-            var totalH     = cfg.headerHeightRE + (cfg.rowHeightRE * phases.length);
-
-            /* Rote Linie */
-            var tLine = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
-            tLine.left   = re2pt(todayX);
-            tLine.top    = re2pt(y0);
-            tLine.width  = c2p(0.06);
-            tLine.height = re2pt(totalH);
-            tLine.fill.setSolidColor("FF0000");
-            tLine.lineFormat.visible = false;
-            tLine.name = "GANTT_TODAY";
-
-            /* "Heute" Label oben */
-            var tLbl = slide.shapes.addTextBox("\u25BC Heute", {
-                left:   re2pt(todayX) - c2p(0.5),
-                top:    re2pt(y0) - c2p(0.5),
-                width:  c2p(1.5),
-                height: c2p(0.5)
-            });
-            tLbl.name = "GANTT_TODAY_LBL";
-            tLbl.textFrame.autoSizeSetting = PowerPoint.ShapeAutoSize.autoSizeNone;
-            tLbl.textFrame.textRange.font.size  = 6;
-            tLbl.textFrame.textRange.font.color = "FF0000";
-            tLbl.textFrame.textRange.font.bold  = true;
-            tLbl.textFrame.textRange.paragraphFormat.horizontalAlignment =
-                PowerPoint.ParagraphHorizontalAlignment.center;
-            tLbl.fill.clear();
-            tLbl.lineFormat.visible = false;
+        var now = new Date();
+        if (now >= cfg.startDate && now <= cfg.endDate) {
+            var todayRatio = (now.getTime() - cfg.startDate.getTime()) / totalMs;
+            var todayRE = Math.round(todayRatio * cfg.chartWidthRE);
+            var todayH = cfg.headerHeightRE + (cfg.rowHeightRE * phases.length);
+            var tl = slide.shapes.addLine(
+                PowerPoint.ConnectorType.straight,
+                { left: re2pt(chartX0 + todayRE), top: re2pt(y0), width: 0, height: re2pt(todayH) }
+            );
+            tl.name = "GANTT_TODAY";
+            tl.lineFormat.color = "E74C3C";
+            tl.lineFormat.weight = 1.5;
+            tl.lineFormat.dashStyle = PowerPoint.ShapeLineDashStyle.dash;
         }
     }
-
-    showStatus("GANTT erstellt! (" + phases.length + " Phasen, " + timeSlots.length + " Spalten)", "success");
-    return ctx.sync();
 }
