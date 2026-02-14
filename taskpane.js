@@ -3,17 +3,19 @@
    ═══════════════════════════════════════════════════════════════
    Erzeugt GANTT-Diagramme direkt in PowerPoint als Shapes.
    Alle Maße in Rastereinheiten (RE), Position immer ganzzahlig.
-   ═══════════════════════════════════════════════════════════════ */
+ */
 
-/* ── Globals ── */
+/* ══════════════════════════════════════════════════════════════
+   GLOBALS
+   ══════════════════════════════════════════════════════════════ */
 var gridUnitCm = 0.63;
 var apiOk = false;
 
 /* Feste Diagramm-Position & Größe in RE */
-var GANTT_LEFT   = 8;
-var GANTT_TOP    = 17;
-var GANTT_MAX_W  = 118;
-var GANTT_MAX_H  = 69;
+var GANTT_LEFT  = 8;
+var GANTT_TOP   = 17;
+var GANTT_MAX_W = 118;
+var GANTT_MAX_H = 69;
 
 /* Farb-Palette für Phasen */
 var PHASE_COLORS = [
@@ -22,13 +24,17 @@ var PHASE_COLORS = [
     "#16A085", "#E74C3C", "#3498DB", "#9B59B6"
 ];
 
-/* ── Konvertierungen ── */
-function c2p(cm) { return cm * 72 / 2.54; }
-function p2c(pt) { return pt * 2.54 / 72; }
-function re2cm(re) { return re * gridUnitCm; }
-function re2pt(re) { return c2p(re * gridUnitCm); }
+/* ══════════════════════════════════════════════════════════════
+   KONVERTIERUNGEN
+   ══════════════════════════════════════════════════════════════ */
+function c2p(cm)  { return cm * 72 / 2.54; }
+function p2c(pt)  { return pt * 2.54 / 72; }
+function re2cm(re){ return re * gridUnitCm; }
+function re2pt(re){ return c2p(re * gridUnitCm); }
 
-/* ── Office Ready ── */
+/* ══════════════════════════════════════════════════════════════
+   OFFICE READY
+   ══════════════════════════════════════════════════════════════ */
 Office.onReady(function (info) {
     if (info.host === Office.HostType.PowerPoint) {
         try {
@@ -60,7 +66,7 @@ function initUI() {
 
     /* Position & Größe Inputs */
     var leftEl = document.getElementById("ganttLeft");
-    var topEl = document.getElementById("ganttTop");
+    var topEl  = document.getElementById("ganttTop");
     var maxWEl = document.getElementById("ganttMaxW");
     var maxHEl = document.getElementById("ganttMaxH");
 
@@ -98,15 +104,15 @@ function showStatus(msg, type) {
    DEFAULT DATES
    ══════════════════════════════════════════════════════════════ */
 function setDefaultDates() {
-    var now = new Date();
+    var now   = new Date();
     var start = new Date(now.getFullYear(), now.getMonth(), 1);
-    var end = new Date(now.getFullYear(), now.getMonth() + 6, 0);
+    var end   = new Date(now.getFullYear(), now.getMonth() + 6, 0);
     document.getElementById("startDate").value = formatDate(start);
-    document.getElementById("endDate").value = formatDate(end);
+    document.getElementById("endDate").value   = formatDate(end);
 }
 
 function formatDate(d) {
-    var m = (d.getMonth() + 1).toString();
+    var m   = (d.getMonth() + 1).toString();
     if (m.length < 2) m = "0" + m;
     var day = d.getDate().toString();
     if (day.length < 2) day = "0" + day;
@@ -120,12 +126,12 @@ var phaseCount = 0;
 
 function addPhaseRow() {
     phaseCount++;
-    var idx = phaseCount;
+    var idx       = phaseCount;
     var container = document.getElementById("phaseContainer");
-    var color = PHASE_COLORS[(idx - 1) % PHASE_COLORS.length];
+    var color     = PHASE_COLORS[(idx - 1) % PHASE_COLORS.length];
 
     var startD = document.getElementById("startDate").value;
-    var endD = document.getElementById("endDate").value;
+    var endD   = document.getElementById("endDate").value;
 
     var div = document.createElement("div");
     div.className = "phase-row";
@@ -151,7 +157,7 @@ function getPhases() {
     for (var i = 1; i <= phaseCount; i++) {
         var row = document.getElementById("phase_" + i);
         if (!row) continue;
-        var name  = row.querySelector(".phase-name").value || ("Phase " + i);
+        var name  = row.querySelector(".phase-name").value  || ("Phase " + i);
         var start = row.querySelector(".phase-start").value;
         var end   = row.querySelector(".phase-end").value;
         var color = row.querySelector(".phase-color").value;
@@ -189,7 +195,7 @@ function getTimeSlots(startDate, endDate, unit) {
     else if (unit === "weeks") {
         /* Start auf Montag der Startwoche setzen */
         d = new Date(startDate);
-        var dow = d.getDay();
+        var dow  = d.getDay();
         var diff = (dow === 0) ? -6 : 1 - dow;
         d.setDate(d.getDate() + diff);
         while (d <= endDate) {
@@ -207,7 +213,7 @@ function getTimeSlots(startDate, endDate, unit) {
     else if (unit === "months") {
         d = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
         while (d <= endDate) {
-            var mEnd = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+            var mEnd   = new Date(d.getFullYear(), d.getMonth() + 1, 1);
             var mNames = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
             slots.push({
                 label: mNames[d.getMonth()] + " " + d.getFullYear().toString().substr(2),
@@ -244,6 +250,38 @@ function getISOWeek(d) {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   HILFSFUNKTION: TextBox erstellen und formatieren
+   ══════════════════════════════════════════════════════════════
+   
+   Die PowerPoint JS API nutzt:
+     slide.shapes.addTextBox(text, options)  → gibt Shape zurück
+     shape.textFrame.textRange              → TextRange (Property!)
+     shape.textFrame.textRange.font         → Font-Einstellungen
+   
+   NICHT: textFrame.getRange() ← das ist Word-API!
+   ══════════════════════════════════════════════════════════════ */
+function addStyledTextBox(slide, text, left, top, width, height, name, fontSize, fontColor, bold, alignment) {
+    var opts = {
+        left:   left,
+        top:    top,
+        width:  width,
+        height: height
+    };
+    var tb = slide.shapes.addTextBox(text, opts);
+    tb.name = name;
+
+    var tr = tb.textFrame.textRange;
+    tr.font.size  = fontSize;
+    tr.font.color = fontColor;
+    tr.font.bold  = bold;
+    tr.paragraphFormat.horizontalAlignment = alignment;
+
+    tb.textFrame.autoSizeSetting = PowerPoint.ShapeAutoSize.autoSizeNone;
+
+    return tb;
+}
+
+/* ══════════════════════════════════════════════════════════════
    GANTT GENERATOR – Hauptfunktion
    ══════════════════════════════════════════════════════════════
    Alles in ganzen Rastereinheiten (RE).
@@ -251,7 +289,7 @@ function getISOWeek(d) {
    Max: Breite=118 RE, Höhe=69 RE
    ══════════════════════════════════════════════════════════════ */
 function generateGantt() {
-    /* ── Eingaben lesen ── */
+    /* Eingaben lesen */
     var startDate = new Date(document.getElementById("startDate").value);
     var endDate   = new Date(document.getElementById("endDate").value);
     var unit      = document.getElementById("timeUnit").value;
@@ -263,7 +301,7 @@ function generateGantt() {
         showStatus("End-Datum muss nach Start-Datum liegen!", "error"); return;
     }
 
-    var phases    = getPhases();
+    var phases = getPhases();
     if (phases.length === 0) { showStatus("Mind. 1 Phase mit Daten nötig!", "error"); return; }
 
     var showToday     = document.getElementById("showToday").checked;
@@ -272,8 +310,8 @@ function generateGantt() {
     var showGridLines = document.getElementById("showGridLines").checked;
 
     var timeSlots = getTimeSlots(startDate, endDate, unit);
-    if (timeSlots.length === 0) { showStatus("Keine Zeiteinheiten im Bereich!", "error"); return; }
-    if (timeSlots.length > 120) { showStatus("Zu viele Zeiteinheiten (max 120)!", "error"); return; }
+    if (timeSlots.length === 0)   { showStatus("Keine Zeiteinheiten im Bereich!", "error"); return; }
+    if (timeSlots.length > 120)   { showStatus("Zu viele Zeiteinheiten (max 120)!", "error"); return; }
 
     /* ── Position & Größe aus Inputs lesen ── */
     GANTT_LEFT  = parseInt(document.getElementById("ganttLeft").value)  || 8;
@@ -299,14 +337,14 @@ function generateGantt() {
 
     /* Zeilenhöhe in RE – jede Phase 1 RE kleiner Abstand zur vorherigen */
     var availHeightRE = GANTT_MAX_H - headerHeightRE;
-    var rowHeightRE = Math.max(2, Math.floor(availHeightRE / (phases.length + 1)));
+    var rowHeightRE   = Math.max(2, Math.floor(availHeightRE / (phases.length + 1)));
     if (rowHeightRE > 6) rowHeightRE = 6;
-    var barHeightRE = Math.max(1, rowHeightRE - 1); /* 1 RE kleiner */
+    var barHeightRE   = Math.max(1, rowHeightRE - 1); /* 1 RE kleiner */
 
     var totalHeightRE = headerHeightRE + (rowHeightRE * phases.length);
     if (totalHeightRE > GANTT_MAX_H) {
-        rowHeightRE = Math.floor((GANTT_MAX_H - headerHeightRE) / phases.length);
-        barHeightRE = Math.max(1, rowHeightRE - 1);
+        rowHeightRE   = Math.floor((GANTT_MAX_H - headerHeightRE) / phases.length);
+        barHeightRE   = Math.max(1, rowHeightRE - 1);
         totalHeightRE = headerHeightRE + (rowHeightRE * phases.length);
     }
 
@@ -361,8 +399,8 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
     var x0 = GANTT_LEFT;  /* Start links in RE */
     var y0 = GANTT_TOP;   /* Start oben in RE */
 
-    var chartX0 = x0 + cfg.labelWidthRE;     /* Chart-Bereich Start X */
-    var chartY0 = y0 + cfg.headerHeightRE;   /* Chart-Bereich Start Y */
+    var chartX0 = x0 + cfg.labelWidthRE;  /* Chart-Bereich Start X */
+    var chartY0 = y0 + cfg.headerHeightRE; /* Chart-Bereich Start Y */
 
     var totalMs = cfg.endDate.getTime() - cfg.startDate.getTime();
 
@@ -371,7 +409,7 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
        ──────────────────────────────────────────── */
     var bgW = cfg.labelWidthRE + cfg.chartWidthRE;
     var bgH = cfg.headerHeightRE + (cfg.rowHeightRE * phases.length);
-    var bg = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
+    var bg  = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
     bg.left   = re2pt(x0);
     bg.top    = re2pt(y0);
     bg.width  = re2pt(bgW);
@@ -397,20 +435,19 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
         /* Header Labels */
         for (var h = 0; h < timeSlots.length; h++) {
             var hx = chartX0 + (h * cfg.colWidthRE);
-            var htb = slide.shapes.addTextBox();
-            htb.left   = re2pt(hx);
-            htb.top    = re2pt(y0);
-            htb.width  = re2pt(cfg.colWidthRE);
-            htb.height = re2pt(cfg.headerHeightRE);
-            htb.name = "GANTT_HDR_" + h;
-            htb.textFrame.autoSizeSetting = "autoSizeNone";
-
-            var htf = htb.textFrame.getRange();
-            htf.text = timeSlots[h].label;
-            htf.font.size = 7;
-            htf.font.color = "FFFFFF";
-            htf.font.bold = true;
-            htf.paragraphFormat.alignment = "Center";
+            addStyledTextBox(
+                slide,
+                timeSlots[h].label,
+                re2pt(hx),
+                re2pt(y0),
+                re2pt(cfg.colWidthRE),
+                re2pt(cfg.headerHeightRE),
+                "GANTT_HDR_" + h,
+                7,        /* fontSize */
+                "FFFFFF",  /* fontColor */
+                true,     /* bold */
+                PowerPoint.ParagraphHorizontalAlignment.center
+            );
         }
     }
 
@@ -420,20 +457,19 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
     if (cfg.showLabels) {
         for (var l = 0; l < phases.length; l++) {
             var ly = chartY0 + (l * cfg.rowHeightRE);
-            var ltb = slide.shapes.addTextBox();
-            ltb.left   = re2pt(x0);
-            ltb.top    = re2pt(ly);
-            ltb.width  = re2pt(cfg.labelWidthRE);
-            ltb.height = re2pt(cfg.rowHeightRE);
-            ltb.name = "GANTT_LBL_" + l;
-            ltb.textFrame.autoSizeSetting = "autoSizeNone";
-
-            var ltf = ltb.textFrame.getRange();
-            ltf.text = phases[l].name;
-            ltf.font.size = 8;
-            ltf.font.color = "1A1A2E";
-            ltf.font.bold = true;
-            ltf.paragraphFormat.alignment = "Left";
+            addStyledTextBox(
+                slide,
+                phases[l].name,
+                re2pt(x0),
+                re2pt(ly),
+                re2pt(cfg.labelWidthRE),
+                re2pt(cfg.rowHeightRE),
+                "GANTT_LBL_" + l,
+                8,        /* fontSize */
+                "1A1A2E",  /* fontColor */
+                true,     /* bold */
+                PowerPoint.ParagraphHorizontalAlignment.left
+            );
         }
     }
 
@@ -441,7 +477,7 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
        4) ZEILEN-HINTERGRUND (abwechselnd)
        ──────────────────────────────────────────── */
     for (var r = 0; r < phases.length; r++) {
-        var ry = chartY0 + (r * cfg.rowHeightRE);
+        var ry    = chartY0 + (r * cfg.rowHeightRE);
         var rowBg = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
         rowBg.left   = re2pt(chartX0);
         rowBg.top    = re2pt(ry);
@@ -462,7 +498,7 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
             var gl = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
             gl.left   = re2pt(gx);
             gl.top    = re2pt(y0);
-            gl.width  = c2p(0.02);   /* Haarline */
+            gl.width  = c2p(0.02); /* Haarlinie */
             gl.height = re2pt(gridH);
             gl.fill.setSolidColor("B0B0B0");
             gl.lineFormat.visible = false;
@@ -472,11 +508,12 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
 
     /* ────────────────────────────────────────────
        6) GANTT-BALKEN (Phasen)
-       ──────────────────────────────────────────── 
+       
        Balkenhöhe = rowHeightRE - 1 RE (1 RE kleiner)
        Balken vertikal zentriert in der Zeile.
        Horizontale Position: proportional zur Zeit,
-       aber auf ganze RE gerundet. */
+       aber auf ganze RE gerundet.
+       ──────────────────────────────────────────── */
     for (var p = 0; p < phases.length; p++) {
         var phase = phases[p];
 
@@ -494,9 +531,9 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
         var barWidthRE = Math.max(1, barRightRE - barLeftRE);
 
         /* Vertikal: zentriert in der Zeile, 1 RE kleiner */
-        var rowY = chartY0 + (p * cfg.rowHeightRE);
+        var rowY       = chartY0 + (p * cfg.rowHeightRE);
         var barYOffset = Math.floor((cfg.rowHeightRE - cfg.barHeightRE) / 2);
-        var barY = rowY + barYOffset;
+        var barY       = rowY + barYOffset;
 
         var bar = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.roundedRectangle);
         bar.left   = re2pt(chartX0 + barLeftRE);
@@ -509,20 +546,19 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
 
         /* Balken-Text (Phasenname auf dem Balken) */
         if (barWidthRE >= 4) {
-            var barTb = slide.shapes.addTextBox();
-            barTb.left   = re2pt(chartX0 + barLeftRE);
-            barTb.top    = re2pt(barY);
-            barTb.width  = re2pt(barWidthRE);
-            barTb.height = re2pt(cfg.barHeightRE);
-            barTb.name = "GANTT_BARTXT_" + p;
-            barTb.textFrame.autoSizeSetting = "autoSizeNone";
-
-            var btf = barTb.textFrame.getRange();
-            btf.text = phase.name;
-            btf.font.size = 7;
-            btf.font.color = "FFFFFF";
-            btf.font.bold = true;
-            btf.paragraphFormat.alignment = "Center";
+            addStyledTextBox(
+                slide,
+                phase.name,
+                re2pt(chartX0 + barLeftRE),
+                re2pt(barY),
+                re2pt(barWidthRE),
+                re2pt(cfg.barHeightRE),
+                "GANTT_BARTXT_" + p,
+                7,        /* fontSize */
+                "FFFFFF",  /* fontColor */
+                true,     /* bold */
+                PowerPoint.ParagraphHorizontalAlignment.center
+            );
         }
     }
 
@@ -534,60 +570,37 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
         today.setHours(0, 0, 0, 0);
         if (today >= cfg.startDate && today <= cfg.endDate) {
             var todayRatio = (today.getTime() - cfg.startDate.getTime()) / totalMs;
-            var todayRE = Math.round(todayRatio * cfg.chartWidthRE);
-            var todayX = chartX0 + todayRE;
-            var totalH = cfg.headerHeightRE + (cfg.rowHeightRE * phases.length);
+            var todayRE    = Math.round(todayRatio * cfg.chartWidthRE);
+            var todayX     = chartX0 + todayRE;
+            var totalH     = cfg.headerHeightRE + (cfg.rowHeightRE * phases.length);
 
             /* Rote Linie */
             var tLine = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
             tLine.left   = re2pt(todayX);
             tLine.top    = re2pt(y0);
-            tLine.width  = c2p(0.06);   /* Etwas dicker */
+            tLine.width  = c2p(0.06); /* Etwas dicker */
             tLine.height = re2pt(totalH);
             tLine.fill.setSolidColor("FF0000");
             tLine.lineFormat.visible = false;
             tLine.name = "GANTT_TODAY";
 
             /* "Heute" Label oben */
-            var tLbl = slide.shapes.addTextBox();
-            tLbl.left   = re2pt(todayX) - c2p(0.5);
-            tLbl.top    = re2pt(y0) - c2p(0.5);
-            tLbl.width  = c2p(1.5);
-            tLbl.height = c2p(0.5);
-            tLbl.name = "GANTT_TODAY_LBL";
-            tLbl.textFrame.autoSizeSetting = "autoSizeNone";
-
-            var tlf = tLbl.textFrame.getRange();
-            tlf.text = "\u25BC Heute";
-            tlf.font.size = 6;
-            tlf.font.color = "FF0000";
-            tlf.font.bold = true;
-            tlf.paragraphFormat.alignment = "Center";
+            addStyledTextBox(
+                slide,
+                "\u25BC Heute",
+                re2pt(todayX) - c2p(0.5),
+                re2pt(y0) - c2p(0.5),
+                c2p(1.5),
+                c2p(0.5),
+                "GANTT_TODAY_LBL",
+                6,        /* fontSize */
+                "FF0000",  /* fontColor */
+                true,     /* bold */
+                PowerPoint.ParagraphHorizontalAlignment.center
+            );
         }
     }
 
-    /* ────────────────────────────────────────────
-       8) SYNC & STATUS
-       ──────────────────────────────────────────── */
-    return ctx.sync().then(function () {
-        var info = phases.length + " Phasen \u00b7 " + timeSlots.length + " " +
-            (cfg.unit === "days" ? "Tage" :
-             cfg.unit === "weeks" ? "KW" :
-             cfg.unit === "months" ? "Monate" : "Quartale");
-        showStatus("GANTT erstellt \u2713 \u00b7 " + info, "success");
-
-        /* Info-Box anzeigen */
-        var el = document.getElementById("infoBox");
-        el.innerHTML =
-            '<div class="info-item"><span class="info-label">Position:</span>' +
-            '<span class="info-value">' + GANTT_LEFT + ' \u00d7 ' + GANTT_TOP + ' RE</span></div>' +
-            '<div class="info-item"><span class="info-label">Gr\u00f6\u00dfe:</span>' +
-            '<span class="info-value">' + (cfg.labelWidthRE + cfg.chartWidthRE) + ' \u00d7 ' +
-            (cfg.headerHeightRE + cfg.rowHeightRE * phases.length) + ' RE</span></div>' +
-            '<div class="info-item"><span class="info-label">Spaltenbreite:</span>' +
-            '<span class="info-value">' + cfg.colWidthRE + ' RE</span></div>' +
-            '<div class="info-item"><span class="info-label">Zeilenh\u00f6he:</span>' +
-            '<span class="info-value">' + cfg.rowHeightRE + ' RE (Balken: ' + cfg.barHeightRE + ' RE)</span></div>';
-        el.classList.add("visible");
-    });
+    showStatus("GANTT erstellt! (" + phases.length + " Phasen, " + timeSlots.length + " Spalten)", "ok");
+    return ctx.sync();
 }
