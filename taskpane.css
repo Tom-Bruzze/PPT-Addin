@@ -1,4 +1,4 @@
-/* DROEGE GANTT Generator – taskpane.css  Build 14.02.2026 v3 */
+/* DROEGE GANTT Generator – taskpane.css  Build 14.02.2026 v5 */
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:#1a1a2e;color:#e0e0e0;font-size:12px;overflow-y:auto;min-height:100vh}
 .app{max-width:280px;margin:0 auto;padding:5px 6px}
@@ -61,7 +61,9 @@ select.form-input option{background:#0a0e1a;color:#e0e0e0}
 }
 .cb-row label{font-size:8px;color:#8899aa;cursor:pointer}
 
-/* PHASE ROWS */
+/* ═══════════════════════════════════════════
+   PHASE ROWS
+   ═══════════════════════════════════════════ */
 .phase-row{display:flex;align-items:flex-start;gap:2px;padding:3px 0;border-bottom:1px solid #0f1a30}
 .phase-row:last-child{border-bottom:none}
 .phase-num{
@@ -85,70 +87,71 @@ select.form-input option{background:#0a0e1a;color:#e0e0e0}
 }
 .phase-date:focus{border-color:#e94560;outline:none}
 
-/* ═══ FARB-AUSWAHL (Swatch-Grid statt input[type=color]) ═══ */
-.phase-color-row{display:flex;align-items:center;gap:2px;margin-top:1px}
+/* ═══════════════════════════════════════════
+   FARB-AUSWAHL v5 – Swatch + Hex-Input + Palette
+   ═══════════════════════════════════════════ */
+.phase-color-row{
+  display:flex;align-items:center;gap:3px;margin-top:1px;
+}
+
+/* Sichtbares Farb-Quadrat (zeigt aktuelle Farbe) */
 .phase-swatch-current{
   width:16px;height:16px;border-radius:3px;
-  border:2px solid #5a6a8a;flex-shrink:0;
-  cursor:pointer;position:relative;
+  border:2px solid #2a2a4a;cursor:pointer;flex-shrink:0;
+  transition:border-color .15s;
 }
-.phase-swatch-current.ring{border-color:#e94560}
+.phase-swatch-current:hover{border-color:#e94560}
+
+/* Hex-Eingabefeld */
 .phase-hex{
-  width:52px;padding:2px 3px;
+  width:56px;padding:2px 3px;
   background:#0a0e1a;border:1px solid #2a2a4a;color:#e0e0e0;
-  border-radius:3px;font-size:8px;
-  font-family:'Consolas','Courier New',monospace;
-  text-transform:uppercase;
+  border-radius:3px;font-size:8px;font-family:monospace;
+  text-transform:uppercase;letter-spacing:.5px;
 }
 .phase-hex:focus{border-color:#e94560;outline:none}
+
+/* Palette-Toggle-Button */
 .phase-palette-btn{
-  font-size:8px;color:#8899aa;background:none;border:1px solid #2a2a4a;
-  border-radius:3px;padding:0 3px;height:16px;cursor:pointer;
-  white-space:nowrap;
+  padding:1px 4px;border:1px solid #2a2a4a;
+  background:#0a0e1a;color:#8899aa;border-radius:3px;
+  cursor:pointer;font-size:8px;line-height:1;
+  transition:all .12s;
 }
 .phase-palette-btn:hover{color:#e94560;border-color:#e94560}
 
-/* Palette Popup (absolut unter der Phase-Zeile) */
+/* Palette-Grid (standardmäßig versteckt) */
 .phase-palette{
   display:none;flex-wrap:wrap;gap:2px;
   padding:3px;margin-top:2px;
-  background:#0a0e1a;border:1px solid #2a2a4a;border-radius:4px;
+  background:#0a0e1a;border:1px solid #2a2a4a;border-radius:3px;
 }
 .phase-palette.open{display:flex}
+
+/* Einzelne Farbfelder in der Palette */
 .pal-swatch{
-  width:18px;height:18px;border-radius:3px;
-  border:2px solid transparent;cursor:pointer;
-  transition:border-color .1s;
+  width:14px;height:14px;border-radius:2px;
+  cursor:pointer;border:2px solid transparent;
+  transition:all .1s;
 }
-.pal-swatch:hover{border-color:#fff}
-.pal-swatch.selected{border-color:#e94560}
+.pal-swatch:hover{border-color:#fff;transform:scale(1.15)}
+.pal-swatch.selected{border-color:#e94560;transform:scale(1.1)}
 
-/* BUTTONS */
-.btn-row{display:flex;gap:2px;margin-top:2px}
-.btn{
-  flex:1;height:22px;
-  border:none;border-radius:3px;
-  color:#fff;font-size:9px;font-weight:700;
-  cursor:pointer;transition:all .1s;
-  display:flex;align-items:center;justify-content:center;
-  background:linear-gradient(135deg,#2471a3,#2e86c1);
+/* PHASE ACTIONS */
+.phase-actions{padding:4px 0 2px;text-align:right}
+.btn-phase{
+  width:22px;height:16px;border:none;border-radius:3px;
+  background:#2a2a4a;color:#e94560;font-size:12px;
+  font-weight:700;cursor:pointer;
 }
-.btn:hover{filter:brightness(1.25);transform:scale(1.03)}
-.btn:active{transform:scale(.96)}
-.btn-generate{
-  width:100%;height:26px;margin-top:4px;
-  border:none;border-radius:3px;
-  background:linear-gradient(135deg,#c0392b,#e94560);
-  color:#fff;font-size:10px;font-weight:700;
-  cursor:pointer;transition:all .12s;
-  display:flex;align-items:center;justify-content:center;
-  letter-spacing:.3px;
-}
-.btn-generate:hover{filter:brightness(1.15);transform:scale(1.02)}
-.btn-generate:active{transform:scale(.97)}
+.btn-phase:hover{background:#e94560;color:#fff}
 
-/* SCROLLBAR */
-::-webkit-scrollbar{width:3px}
-::-webkit-scrollbar-track{background:#1a1a2e}
-::-webkit-scrollbar-thumb{background:#2a2a4a;border-radius:3px}
-::-webkit-scrollbar-thumb:hover{background:#e94560}
+/* FOOTER */
+.footer{padding:5px 0}
+.btn-main{
+  width:100%;padding:4px;border:none;background:#e94560;color:#fff;
+  border-radius:4px;font-weight:600;font-size:10px;
+  cursor:pointer;letter-spacing:.3px;text-transform:uppercase;
+}
+.btn-main:hover{background:#ff6b81}
+.btn-main:disabled{background:#5a6a8a;cursor:not-allowed}

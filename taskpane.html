@@ -14,7 +14,7 @@
         <span class="logo">&#9638;</span>
         <div>
             <div class="title"><b>GANTT Generator</b> by Droege Group</div>
-            <div class="build">Build 14.02.2026 v3</div>
+            <div class="build">Build 14.02.2026 v5</div>
         </div>
     </div>
 
@@ -83,23 +83,18 @@
         </button>
         <div class="sec-body">
             <div id="phaseContainer"></div>
-            <div class="btn-row">
-                <button id="addPhase" class="btn" type="button">+ Phase</button>
-                <button id="removePhase" class="btn" type="button">− Phase</button>
+            <div class="phase-actions">
+                <button id="addPhase" class="btn-phase" type="button">+</button>
+                <button id="removePhase" class="btn-phase" type="button">−</button>
             </div>
         </div>
     </div>
 
-    <button id="generateGantt" class="btn-generate" type="button">GANTT erstellen</button>
+    <div class="footer">
+        <button id="generateGantt" class="btn-main" type="button">GANTT-Diagramm erstellen</button>
+    </div>
 
 </div>
 <script src="taskpane.js"></script>
-<script>
-function toggleSection(hdr){
-    var body=hdr.nextElementSibling;
-    var c=body.classList.toggle('collapsed');
-    hdr.classList.toggle('is-collapsed',c);
-}
-</script>
 </body>
 </html>
