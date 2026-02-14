@@ -1,5 +1,6 @@
 /* 
    DROEGE GANTT Generator – taskpane.js
+   Build 14.02.2026
    
    Erzeugt GANTT-Diagramme direkt in PowerPoint als Shapes.
    Alle Maße in Rastereinheiten (RE), Position immer ganzzahlig.
@@ -8,7 +9,7 @@
 /* ══════════════════════════════════════════════════════════════
    GLOBALS
    ══════════════════════════════════════════════════════════════ */
-var gridUnitCm = 0.63;
+var gridUnitCm = 0.21;   /* FIX: Standard auf 0,21 cm */
 var apiOk = false;
 
 /* Feste Diagramm-Position & Größe in RE */
@@ -17,7 +18,7 @@ var GANTT_TOP   = 17;
 var GANTT_MAX_W = 118;
 var GANTT_MAX_H = 69;
 
-/* Zeilenhöhe & Balkenhöhe in RE (vom User einstellbar) */
+/* Zeilenhöhe & Balkenhöhe in RE */
 var ROW_HEIGHT_RE = 4;
 var BAR_HEIGHT_RE = 3;
 
@@ -87,7 +88,7 @@ function initUI() {
         var v = parseInt(this.value); if (!isNaN(v) && v > 0) GANTT_MAX_H = v;
     });
 
-    /* ── NEU: Zeilenhöhe & Balkenhöhe Inputs ── */
+    /* Zeilenhöhe & Balkenhöhe Inputs */
     var rowHEl = document.getElementById("rowHeightRE");
     var barHEl = document.getElementById("barHeightRE");
 
@@ -198,7 +199,7 @@ function getPhases() {
             name:  name,
             start: new Date(start),
             end:   new Date(end),
-            color: color.replace("#", "")
+            color: color.replace("#", "")  /* FIX: # entfernen für setSolidColor */
         });
     }
     return phases;
@@ -272,49 +273,59 @@ function getTimeSlots(startDate, endDate, unit) {
     return slots;
 }
 
-function getISOWeek(d) {
-    var date = new Date(d.getTime());
-    date.setHours(0, 0, 0, 0);
-    date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
-    var week1 = new Date(date.getFullYear(), 0, 4);
-    return 1 + Math.round(((date - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+function getISOWeek(date) {
+    var d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    var yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return weekNo;
 }
 
 /* ══════════════════════════════════════════════════════════════
-   GANTT GENERATOR – Hauptfunktion
+   GENERATE GANTT
    ══════════════════════════════════════════════════════════════ */
 function generateGantt() {
-    /* Eingaben lesen */
     var startDate = new Date(document.getElementById("startDate").value);
     var endDate   = new Date(document.getElementById("endDate").value);
     var unit      = document.getElementById("timeUnit").value;
 
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-        showStatus("Bitte Start- und End-Datum angeben!", "error"); return;
+        showStatus("Bitte Start- und Enddatum eingeben!", "error");
+        return;
     }
     if (endDate <= startDate) {
-        showStatus("End-Datum muss nach Start-Datum liegen!", "error"); return;
+        showStatus("Enddatum muss nach Startdatum liegen!", "error");
+        return;
     }
 
     var phases = getPhases();
-    if (phases.length === 0) { showStatus("Mind. 1 Phase mit Daten nötig!", "error"); return; }
+    if (phases.length === 0) {
+        showStatus("Bitte mindestens eine Phase anlegen!", "error");
+        return;
+    }
+
+    var timeSlots = getTimeSlots(startDate, endDate, unit);
+    if (timeSlots.length === 0) {
+        showStatus("Keine Zeiteinheiten berechenbar!", "error");
+        return;
+    }
 
     var showToday     = document.getElementById("showToday").checked;
     var showHeader    = document.getElementById("showHeader").checked;
     var showLabels    = document.getElementById("showLabels").checked;
     var showGridLines = document.getElementById("showGridLines").checked;
 
-    var timeSlots = getTimeSlots(startDate, endDate, unit);
-    if (timeSlots.length === 0)   { showStatus("Keine Zeiteinheiten im Bereich!", "error"); return; }
-    if (timeSlots.length > 120)   { showStatus("Zu viele Zeiteinheiten (max 120)!", "error"); return; }
+    /* Position & Größe aus Inputs */
+    var leftEl = document.getElementById("ganttLeft");
+    var topEl  = document.getElementById("ganttTop");
+    var maxWEl = document.getElementById("ganttMaxW");
+    var maxHEl = document.getElementById("ganttMaxH");
+    if (leftEl) GANTT_LEFT = parseInt(leftEl.value) || GANTT_LEFT;
+    if (topEl)  GANTT_TOP  = parseInt(topEl.value)  || GANTT_TOP;
+    if (maxWEl) GANTT_MAX_W = parseInt(maxWEl.value) || GANTT_MAX_W;
+    if (maxHEl) GANTT_MAX_H = parseInt(maxHEl.value) || GANTT_MAX_H;
 
-    /* Position & Größe aus Inputs lesen */
-    GANTT_LEFT  = parseInt(document.getElementById("ganttLeft").value)  || 8;
-    GANTT_TOP   = parseInt(document.getElementById("ganttTop").value)   || 17;
-    GANTT_MAX_W = parseInt(document.getElementById("ganttMaxW").value)  || 118;
-    GANTT_MAX_H = parseInt(document.getElementById("ganttMaxH").value)  || 69;
-
-    /* ── NEU: Zeilenhöhe & Balkenhöhe aus Inputs lesen ── */
+    /* Zeilen-/Balkenhöhe aus Inputs */
     ROW_HEIGHT_RE = parseInt(document.getElementById("rowHeightRE").value) || 4;
     BAR_HEIGHT_RE = parseInt(document.getElementById("barHeightRE").value) || 3;
     if (BAR_HEIGHT_RE >= ROW_HEIGHT_RE) BAR_HEIGHT_RE = ROW_HEIGHT_RE - 1;
@@ -335,7 +346,6 @@ function generateGantt() {
         actualChartWidthRE = colWidthRE * timeSlots.length;
     }
 
-    /* ── Zeilenhöhe & Balkenhöhe direkt aus Input (nicht mehr auto-berechnet) ── */
     var rowHeightRE = ROW_HEIGHT_RE;
     var barHeightRE = BAR_HEIGHT_RE;
 
@@ -476,8 +486,7 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
     }
 
     /* ────────────────────────────────────────────
-       4) ZEILEN-HINTERGRUND (abwechselnd)
-       → ENTFERNT (Anforderung 2)
+       4) ZEILEN-HINTERGRUND (abwechselnd) → ENTFERNT
        ──────────────────────────────────────────── */
 
     /* ────────────────────────────────────────────
@@ -522,7 +531,8 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
         var barYOffset = Math.floor((cfg.rowHeightRE - cfg.barHeightRE) / 2);
         var barY       = rowY + barYOffset;
 
-        /* Balken-Shape mit Phasenfarbe (FIX: phase.color ohne #) */
+        /* Balken-Shape mit Phasenfarbe
+           FIX: phase.color ist bereits ohne # (durch getPhases) */
         var bar = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.roundedRectangle);
         bar.left   = re2pt(chartX0 + barLeftRE);
         bar.top    = re2pt(barY);

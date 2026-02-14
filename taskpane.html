@@ -10,51 +10,45 @@
 <body>
 <div class="app">
 
-    <!-- HEADER -->
-    <header class="hdr">
-        <span class="brand-mark" aria-hidden="true"></span>
-        <div class="hdr-main">
-            <div class="hdr-title">GANTT Generator</div>
-            <div class="hdr-sub">Droege Group · PowerPoint Add-in</div>
+    <!-- HEADER (identisch zum Resize-Addin) -->
+    <div class="hdr">
+        <span class="logo">&#9638;</span>
+        <div>
+            <div class="title"><b>GANTT Generator</b> by Droege Group</div>
+            <div class="build">Build 14.02.2026</div>
         </div>
-        <div class="hdr-meta">
-            <span class="build">Build 14.02.2026</span>
-        </div>
-    </header>
+    </div>
 
     <!-- Rastereinheit -->
-    <section class="re-bar" aria-label="Rastereinheit">
+    <div class="re-sec">
         <span class="lbl">RE</span>
-        <div class="seg" role="group" aria-label="Rastereinheit Presets">
-            <button class="pre active" data-v="0.21" type="button">0,21</button>
-            <button class="pre" data-v="0.42" type="button">0,42</button>
-            <button class="pre" data-v="0.63" type="button">0,63</button>
-            <button class="pre" data-v="2.10" type="button">2,10</button>
-        </div>
+        <button class="pre active" data-v="0.21" type="button">0,21</button>
+        <button class="pre" data-v="0.42" type="button">0,42</button>
+        <button class="pre" data-v="0.63" type="button">0,63</button>
+        <button class="pre" data-v="2.10" type="button">2,10</button>
         <span class="unit">cm</span>
-    </section>
+    </div>
 
     <!-- Status -->
     <div id="status" class="sts info">Bereit</div>
 
     <!-- SECTION: Zeitraum -->
-    <section class="sec">
-        <button class="sec-hdr" type="button" onclick="toggleSection(this)" aria-expanded="true" aria-controls="sec_time">
-            <span class="sec-icon" aria-hidden="true">T</span>
+    <div class="sec">
+        <button class="sec-hdr" type="button" onclick="toggleSection(this)">
             <span class="sec-title">Zeitraum & Einheit</span>
-            <span class="sec-toggle" aria-hidden="true"></span>
+            <span class="sec-toggle"></span>
         </button>
-        <div id="sec_time" class="sec-body">
+        <div class="sec-body">
             <div class="form-row">
-                <label class="form-lbl" for="startDate">Start</label>
+                <span class="form-lbl">Start</span>
                 <input id="startDate" class="form-input" type="date">
             </div>
             <div class="form-row">
-                <label class="form-lbl" for="endDate">Ende</label>
+                <span class="form-lbl">Ende</span>
                 <input id="endDate" class="form-input" type="date">
             </div>
             <div class="form-row">
-                <label class="form-lbl" for="timeUnit">Einheit</label>
+                <span class="form-lbl">Einheit</span>
                 <select id="timeUnit" class="form-input">
                     <option value="days">Tage</option>
                     <option value="weeks" selected>Wochen (KW)</option>
@@ -63,51 +57,49 @@
                 </select>
             </div>
         </div>
-    </section>
+    </div>
 
     <!-- SECTION: Position & Größe -->
-    <section class="sec">
-        <button class="sec-hdr" type="button" onclick="toggleSection(this)" aria-expanded="true" aria-controls="sec_pos">
-            <span class="sec-icon" aria-hidden="true">P</span>
+    <div class="sec">
+        <button class="sec-hdr" type="button" onclick="toggleSection(this)">
             <span class="sec-title">Position & Größe (RE)</span>
-            <span class="sec-toggle" aria-hidden="true"></span>
+            <span class="sec-toggle"></span>
         </button>
-        <div id="sec_pos" class="sec-body">
+        <div class="sec-body">
             <div class="form-row">
-                <label class="form-lbl" for="ganttLeft">Links</label>
+                <span class="form-lbl">Links</span>
                 <input id="ganttLeft" class="form-input" type="number" min="0" value="8">
             </div>
             <div class="form-row">
-                <label class="form-lbl" for="ganttTop">Oben</label>
+                <span class="form-lbl">Oben</span>
                 <input id="ganttTop" class="form-input" type="number" min="0" value="17">
             </div>
             <div class="form-row">
-                <label class="form-lbl" for="ganttMaxW">Max Breite</label>
+                <span class="form-lbl">Max Breite</span>
                 <input id="ganttMaxW" class="form-input" type="number" min="10" value="118">
             </div>
             <div class="form-row">
-                <label class="form-lbl" for="ganttMaxH">Max Höhe</label>
+                <span class="form-lbl">Max Höhe</span>
                 <input id="ganttMaxH" class="form-input" type="number" min="10" value="69">
             </div>
             <div class="form-row">
-                <label class="form-lbl" for="rowHeightRE">Zeilenhöhe</label>
+                <span class="form-lbl">Zeilenhöhe</span>
                 <input id="rowHeightRE" class="form-input" type="number" min="2" value="4">
             </div>
             <div class="form-row">
-                <label class="form-lbl" for="barHeightRE">Balkenhöhe</label>
+                <span class="form-lbl">Balkenhöhe</span>
                 <input id="barHeightRE" class="form-input" type="number" min="1" value="3">
             </div>
         </div>
-    </section>
+    </div>
 
     <!-- SECTION: Optionen -->
-    <section class="sec">
-        <button class="sec-hdr" type="button" onclick="toggleSection(this)" aria-expanded="true" aria-controls="sec_opts">
-            <span class="sec-icon" aria-hidden="true">O</span>
+    <div class="sec">
+        <button class="sec-hdr" type="button" onclick="toggleSection(this)">
             <span class="sec-title">Optionen</span>
-            <span class="sec-toggle" aria-hidden="true"></span>
+            <span class="sec-toggle"></span>
         </button>
-        <div id="sec_opts" class="sec-body">
+        <div class="sec-body">
             <div class="cb-row">
                 <input type="checkbox" id="showHeader" checked>
                 <label for="showHeader">Header-Zeile anzeigen</label>
@@ -125,26 +117,25 @@
                 <label for="showToday">Heute-Linie anzeigen</label>
             </div>
         </div>
-    </section>
+    </div>
 
     <!-- SECTION: Phasen -->
-    <section class="sec">
-        <button class="sec-hdr" type="button" onclick="toggleSection(this)" aria-expanded="true" aria-controls="sec_phases">
-            <span class="sec-icon" aria-hidden="true">F</span>
+    <div class="sec">
+        <button class="sec-hdr" type="button" onclick="toggleSection(this)">
             <span class="sec-title">Phasen</span>
-            <span class="sec-toggle" aria-hidden="true"></span>
+            <span class="sec-toggle"></span>
         </button>
-        <div id="sec_phases" class="sec-body">
+        <div class="sec-body">
             <div id="phaseContainer"></div>
             <div class="btn-row">
-                <button id="addPhase" class="btn" type="button">Phase hinzufügen</button>
-                <button id="removePhase" class="btn" type="button">Phase entfernen</button>
+                <button id="addPhase" class="btn" type="button">+ Phase</button>
+                <button id="removePhase" class="btn" type="button">− Phase</button>
             </div>
         </div>
-    </section>
+    </div>
 
     <!-- GENERATE BUTTON -->
-    <button id="generateGantt" class="btn btn-primary btn-generate" type="button">
+    <button id="generateGantt" class="btn-generate" type="button">
         GANTT erstellen
     </button>
 
@@ -156,7 +147,6 @@ function toggleSection(hdr) {
     var body = hdr.nextElementSibling;
     var collapsed = body.classList.toggle('collapsed');
     hdr.classList.toggle('is-collapsed', collapsed);
-    hdr.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
 }
 </script>
 </body>
