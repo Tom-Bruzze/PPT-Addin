@@ -1,4 +1,4 @@
-/* ===== Droege GANTT Generator CSS v2.2 ===== */
+/* ===== Droege GANTT Generator CSS v2.3 ===== */
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',system-ui,sans-serif;background:#1a1a2e;color:#e0e0e0;font-size:13px;overflow-y:auto;min-height:100vh}
 .app{max-width:400px;margin:0 auto;padding:8px}
@@ -59,10 +59,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#1a1a2e;color:#e0e0e
 }
 .gantt-row input:focus,.gantt-row select:focus{outline:none;border-color:#e94560}
 
-.gantt-color{width:24px;height:24px;border:1px solid #2a3a5c;border-radius:4px;padding:0;cursor:pointer;background:none}
-.gantt-color::-webkit-color-swatch-wrapper{padding:1px}
-.gantt-color::-webkit-color-swatch{border:none;border-radius:3px}
-
 .gantt-phases-head{display:flex;justify-content:space-between;align-items:center;margin:6px 0 4px}
 .gantt-phases-head span{font-size:9px;font-weight:700;color:#5a6a8a;text-transform:uppercase;letter-spacing:.5px}
 .gantt-add{padding:2px 8px;border:1px solid #27ae60;background:transparent;color:#27ae60;border-radius:4px;cursor:pointer;font-size:9px;font-weight:700;transition:all .15s}
@@ -80,15 +76,18 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#1a1a2e;color:#e0e0e
 .gantt-del{width:18px;height:18px;border:none;background:#e74c3c;color:#fff;border-radius:3px;cursor:pointer;font-size:10px;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .12s}
 .gantt-del:hover{background:#c0392b}
 
-.gantt-cb-label{display:flex;align-items:center;gap:3px;font-size:9px;color:#8899b3;cursor:pointer}
-.gantt-cb-label input[type="checkbox"]{accent-color:#e94560;width:12px;height:12px}
-
-.gantt-info{margin-top:4px;font-size:9px;color:#5a6a8a;line-height:1.4;min-height:14px}
+.gantt-info{margin-top:5px;font-size:9px;color:#5a6a8a;line-height:1.4;min-height:14px}
 .gantt-info b{color:#e94560}
 .gantt-info.err{color:#e74c3c}
 
-/* FOOTER */
-.footer{text-align:center;font-size:8px;color:#3a4a6a;margin-top:10px;padding:6px 0;border-top:1px solid #2a3a5c;letter-spacing:.5px}
+/* INFO-BAR */
+.info-bar{
+  text-align:center;font-size:8px;color:#5a6a8a;
+  margin-top:8px;padding:6px 8px;
+  border-top:1px solid #2a3a5c;
+  background:#0f1a2e;border-radius:0 0 6px 6px;
+  letter-spacing:.3px;line-height:1.6;
+}
 
 /* SCROLLBAR */
 ::-webkit-scrollbar{width:5px}

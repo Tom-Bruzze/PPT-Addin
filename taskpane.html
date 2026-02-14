@@ -51,40 +51,29 @@
     <div class="gantt-row">
       <label>Einheit</label>
       <select id="ganttUnit">
-        <option value="week">Wochen</option>
+        <option value="day">Tage</option>
+        <option value="week">Kalenderwochen</option>
         <option value="month" selected>Monate</option>
         <option value="quarter">Quartale</option>
       </select>
-      <label>Label-B</label>
+    </div>
+
+    <div class="gantt-row">
+      <label>Label</label>
       <input type="number" id="ganttLabelW" value="20" min="5" max="40" title="Breite der Beschriftungsspalte in RE">
+      <span class="cm">RE</span>
+      <label>Kopf</label>
+      <input type="number" id="ganttHeaderH" value="3" min="2" max="6" title="H&ouml;he der Kopfzeile in RE">
       <span class="cm">RE</span>
     </div>
 
     <div class="gantt-phases-head">
-      <span>Phasen</span>
+      <span>Phasen <span class="hint">(max. 10)</span></span>
       <button id="ganttAddPhase" class="gantt-add" title="Phase hinzuf&uuml;gen">+ Phase</button>
     </div>
     <div id="ganttPhases" class="gantt-phases"></div>
 
-    <div class="gantt-row" style="margin-top:6px">
-      <label class="gantt-cb-label">
-        <input type="checkbox" id="ganttHeader" checked> Kopfzeile
-      </label>
-      <label class="gantt-cb-label">
-        <input type="checkbox" id="ganttToday"> Heute-Linie
-      </label>
-    </div>
-
-    <div class="gantt-row">
-      <label>Balken</label>
-      <input type="color" id="ganttBarColor" value="#2e86c1" class="gantt-color">
-      <label>Kopf</label>
-      <input type="color" id="ganttHeadColor" value="#1a5276" class="gantt-color">
-      <label>Zeile</label>
-      <input type="color" id="ganttRowColor" value="#f0f0f0" class="gantt-color">
-    </div>
-
-    <button id="createGantt" class="sq-wide teal" style="margin-top:6px">
+    <button id="createGantt" class="sq-wide teal" style="margin-top:8px">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
       Gantt erzeugen
     </button>
@@ -101,8 +90,11 @@
     </button>
   </div>
 
-  <div class="footer">
-    DROEGE GROUP &middot; GANTT Generator v2.2
+  <!-- INFO-BAR -->
+  <div class="info-bar" id="infoBar">
+    <span id="infoDateTime">--</span> &middot;
+    <span id="infoVersion">v2.3</span> &middot;
+    <span id="infoApi">API --</span>
   </div>
 
 </div>
