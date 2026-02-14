@@ -1,8 +1,10 @@
 /*
   DROEGE GANTT Generator – taskpane.js
-  Build 14.02.2026 v3
-  FIX: Farb-Palette statt input[type=color]
-  FIX: Rasterlinien als dünne Rechtecke (nicht addLine)
+  Build 14.02.2026 v4
+  FIX: Farbe wird jetzt sicher in Balken übernommen
+       - Zwei-Pass-Rendering: erst Shapes erstellen, sync, dann Farben setzen
+       - Robustere Hex-Bereinigung an allen Stellen
+       - Debug-Ausgabe der Farben im Status
 */
 
 /* ── GLOBALS ── */
@@ -16,7 +18,7 @@ var GANTT_MAX_H  = 69;
 var ROW_HEIGHT_RE = 4;
 var BAR_HEIGHT_RE = 3;
 
-/* 16 gut unterscheidbare Farben für die Palette */
+/* 16 gut unterscheidbare Farben */
 var PALETTE = [
     "#2471A3", "#27AE60", "#8E44AD", "#E67E22",
     "#2980B9", "#1ABC9C", "#C0392B", "#D4AC0D",
@@ -114,25 +116,26 @@ function fmtDate(d) {
 }
 
 /* ═══════════════════════════════════════════════════════
-   NORMALIZE HEX – robust
+   CLEAN HEX – gibt IMMER 6 Zeichen UPPERCASE zurück, OHNE #
    ═══════════════════════════════════════════════════════ */
-function normalizeHex(raw) {
+function cleanHex(raw) {
     if (!raw) return null;
-    var h = raw.replace(/^#/, "").toUpperCase();
+    /* Alles entfernen was kein Hex-Zeichen ist */
+    var h = raw.replace(/[^0-9A-Fa-f]/g, "").toUpperCase();
+    /* 3-stellig → 6-stellig */
     if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
-    if (!/^[0-9A-F]{6}$/.test(h)) return null;
+    if (h.length !== 6) return null;
     return h;
 }
 
 /* ═══════════════════════════════════════════════════════
    PHASE ROWS – Klickbare Farbpalette + Hex-Eingabe
-   Kein <input type="color"> mehr!
    ═══════════════════════════════════════════════════════ */
 function addPhaseRow() {
     phaseCount++;
     var idx = phaseCount;
     var container = document.getElementById("phaseContainer");
-    var defaultColor = PALETTE[(idx - 1) % PALETTE.length];
+    var defaultHex = cleanHex(PALETTE[(idx - 1) % PALETTE.length]);
 
     var startD = document.getElementById("startDate").value;
     var endD   = document.getElementById("endDate").value;
@@ -178,25 +181,24 @@ function addPhaseRow() {
     row2.appendChild(endInput);
     fields.appendChild(row2);
 
-    /* Zeile 3: Farb-Auswahl  =  Swatch + Hex + Palette-Toggle */
+    /* Zeile 3: Farb-Auswahl = Swatch + Hex + Palette-Toggle */
     var row3 = document.createElement("div");
     row3.className = "phase-color-row";
 
-    /* Aktuelles Farbquadrat (nur Anzeige) */
+    /* Aktuelles Farbquadrat */
     var swatch = document.createElement("div");
     swatch.className = "phase-swatch-current ring";
-    swatch.style.backgroundColor = defaultColor;
+    swatch.style.backgroundColor = "#" + defaultHex;
     swatch.title = "Aktuelle Farbe";
     row3.appendChild(swatch);
 
-    /* Hex-Eingabe */
+    /* Hex-Eingabe – Wert ist IMMER 6 Zeichen OHNE # */
     var hexInput = document.createElement("input");
     hexInput.type = "text";
     hexInput.className = "phase-hex";
-    hexInput.value = defaultColor.replace("#", "");
+    hexInput.value = defaultHex;
     hexInput.maxLength = 7;
     hexInput.placeholder = "HEX";
-    hexInput.setAttribute("data-color", defaultColor.replace("#", ""));
     row3.appendChild(hexInput);
 
     /* Palette-Toggle-Button */
@@ -208,18 +210,17 @@ function addPhaseRow() {
 
     fields.appendChild(row3);
 
-    /* Zeile 4: Farbpalette (versteckt, aufklappbar) */
+    /* Zeile 4: Farbpalette (versteckt) */
     var palDiv = document.createElement("div");
     palDiv.className = "phase-palette";
 
     for (var c = 0; c < PALETTE.length; c++) {
+        var palHex = cleanHex(PALETTE[c]);
         var sw = document.createElement("div");
         sw.className = "pal-swatch";
-        sw.style.backgroundColor = PALETTE[c];
-        sw.setAttribute("data-hex", PALETTE[c].replace("#", ""));
-        if (PALETTE[c].toUpperCase() === defaultColor.toUpperCase()) {
-            sw.classList.add("selected");
-        }
+        sw.style.backgroundColor = "#" + palHex;
+        sw.setAttribute("data-hex", palHex);
+        if (palHex === defaultHex) sw.classList.add("selected");
         palDiv.appendChild(sw);
     }
     fields.appendChild(palDiv);
@@ -229,16 +230,14 @@ function addPhaseRow() {
 
     /* ── EVENTS ── */
 
-    /* Palette öffnen/schließen */
     palBtn.addEventListener("click", function () {
-        var open = palDiv.classList.toggle("open");
-        palBtn.textContent = open ? "▲ Palette" : "▼ Palette";
+        var isOpen = palDiv.classList.toggle("open");
+        palBtn.textContent = isOpen ? "▲ Palette" : "▼ Palette";
     });
 
-    /* Swatch auch öffnet Palette */
     swatch.addEventListener("click", function () {
-        var open = palDiv.classList.toggle("open");
-        palBtn.textContent = open ? "▲ Palette" : "▼ Palette";
+        var isOpen = palDiv.classList.toggle("open");
+        palBtn.textContent = isOpen ? "▲ Palette" : "▼ Palette";
     });
 
     /* Palette-Swatch klicken → Farbe setzen */
@@ -248,28 +247,22 @@ function addPhaseRow() {
         var hex = target.getAttribute("data-hex");
         if (!hex) return;
 
-        /* Alle swatches de-selecten */
         var all = palDiv.querySelectorAll(".pal-swatch");
         for (var s = 0; s < all.length; s++) all[s].classList.remove("selected");
         target.classList.add("selected");
 
-        /* Swatch + Hex aktualisieren */
         swatch.style.backgroundColor = "#" + hex;
         hexInput.value = hex;
-        hexInput.setAttribute("data-color", hex);
 
-        /* Palette schließen */
         palDiv.classList.remove("open");
         palBtn.textContent = "▼ Palette";
     });
 
-    /* Hex-Input → Swatch aktualisieren */
+    /* Hex-Input → Swatch live aktualisieren */
     hexInput.addEventListener("input", function () {
-        var norm = normalizeHex(this.value);
+        var norm = cleanHex(this.value);
         if (norm) {
             swatch.style.backgroundColor = "#" + norm;
-            hexInput.setAttribute("data-color", norm);
-            /* Palette-Swatch markieren falls passend */
             var all = palDiv.querySelectorAll(".pal-swatch");
             for (var s = 0; s < all.length; s++) {
                 all[s].classList.toggle("selected", all[s].getAttribute("data-hex") === norm);
@@ -277,15 +270,13 @@ function addPhaseRow() {
         }
     });
     hexInput.addEventListener("change", function () {
-        var norm = normalizeHex(this.value);
+        var norm = cleanHex(this.value);
         if (norm) {
             this.value = norm;
             swatch.style.backgroundColor = "#" + norm;
-            hexInput.setAttribute("data-color", norm);
         } else {
-            /* Ungültig → Zurücksetzen */
-            var prev = hexInput.getAttribute("data-color") || PALETTE[0].replace("#","");
-            this.value = prev;
+            this.value = defaultHex;
+            swatch.style.backgroundColor = "#" + defaultHex;
             showStatus("Ungültiger Hex-Wert, zurückgesetzt", "warning");
         }
     });
@@ -299,7 +290,8 @@ function removeLastPhase() {
 }
 
 /* ═══════════════════════════════════════════════════════
-   PHASEN AUSLESEN
+   PHASEN AUSLESEN – liest direkt .value (immer cleanHex)
+   Kein data-color Attribut mehr nötig → eine Quelle der Wahrheit
    ═══════════════════════════════════════════════════════ */
 function getPhases() {
     var phases = [];
@@ -312,23 +304,20 @@ function getPhases() {
         var end   = row.querySelector(".phase-end").value;
         if (!start || !end) continue;
 
-        /* Farbe aus data-Attribut des Hex-Inputs lesen */
+        /* Farbe direkt aus dem Hex-Input-Wert lesen und normalisieren */
         var hexEl = row.querySelector(".phase-hex");
         var hex = null;
         if (hexEl) {
-            /* Primär: data-color (immer sauber normalisiert) */
-            hex = hexEl.getAttribute("data-color");
-            /* Fallback: Input-Wert direkt */
-            if (!hex) hex = normalizeHex(hexEl.value);
+            hex = cleanHex(hexEl.value);
         }
         /* Letzter Fallback: Default-Palette */
-        if (!hex) hex = PALETTE[(i-1) % PALETTE.length].replace("#","");
+        if (!hex) hex = cleanHex(PALETTE[(i-1) % PALETTE.length]);
 
         phases.push({
             name:  name,
             start: new Date(start),
             end:   new Date(end),
-            color: hex.toUpperCase()
+            color: hex   /* z.B. "2471A3" – OHNE # – 6 Zeichen – UPPERCASE */
         });
     }
     return phases;
@@ -379,13 +368,17 @@ function re2pt(re) {
 }
 
 /* ═══════════════════════════════════════════════════════
-   GENERATE
+   GENERATE – Zwei-Pass: Shapes anlegen → sync → Farben setzen
    ═══════════════════════════════════════════════════════ */
 function generateGantt() {
     if (!apiOk) { showStatus("PowerPoint API nicht verfügbar","error"); return; }
 
     var phases = getPhases();
     if (phases.length === 0) { showStatus("Keine gültigen Phasen","error"); return; }
+
+    /* Debug: Farben in Status anzeigen */
+    var colorDebug = phases.map(function(p){ return p.name + "=" + p.color; }).join(", ");
+    showStatus("Farben: " + colorDebug, "info");
 
     var startDate = new Date(document.getElementById("startDate").value);
     var endDate   = new Date(document.getElementById("endDate").value);
@@ -410,13 +403,12 @@ function generateGantt() {
     var slotWidthRE    = Math.max(1, Math.round(chartWidthRE / timeSlots.length));
     chartWidthRE       = slotWidthRE * timeSlots.length;
 
-    showStatus("Erstelle... " + timeSlots.length + " Spalten, " + phases.length + " Phasen","info");
-
     PowerPoint.run(function (context) {
         var slide = context.presentation.getSelectedSlides().getItemAt(0);
         slide.load("id");
         return context.sync().then(function () {
-            buildGantt(slide, phases, timeSlots, {
+            /* ── PASS 1: Alle Shapes anlegen ── */
+            var barRefs = buildGanttPass1(slide, phases, timeSlots, {
                 x0: GANTT_LEFT, y0: GANTT_TOP,
                 labelWidthRE: labelWidthRE,
                 headerHeightRE: headerHeightRE,
@@ -428,9 +420,22 @@ function generateGantt() {
                 showHeader: showHeader, showLabels: showLabels,
                 showGridLines: showGridLines, showToday: showToday
             });
-            return context.sync();
+            /* ── SYNC: Shapes werden erstellt ── */
+            return context.sync().then(function () {
+                /* ── PASS 2: Farben auf die nun existierenden Shapes setzen ── */
+                for (var b = 0; b < barRefs.length; b++) {
+                    var ref = barRefs[b];
+                    try {
+                        ref.shape.fill.setSolidColor(ref.color);
+                    } catch (e2) {
+                        /* letzter Fallback */
+                        try { ref.shape.fill.setSolidColor("2471A3"); } catch(e3){}
+                    }
+                }
+                return context.sync();
+            });
         }).then(function () {
-            showStatus("GANTT erfolgreich erstellt!", "success");
+            showStatus("GANTT erfolgreich erstellt! (" + phases.length + " Phasen)", "success");
         });
     }).catch(function (e) {
         showStatus("Fehler: " + e.message, "error");
@@ -438,9 +443,9 @@ function generateGantt() {
 }
 
 /* ═══════════════════════════════════════════════════════
-   BUILD GANTT
+   BUILD GANTT – PASS 1 (Shapes anlegen, Farben zurückgeben)
    ═══════════════════════════════════════════════════════ */
-function buildGantt(slide, phases, timeSlots, cfg) {
+function buildGanttPass1(slide, phases, timeSlots, cfg) {
     var x0      = cfg.x0;
     var y0      = cfg.y0;
     var chartX0 = x0 + cfg.labelWidthRE;
@@ -448,7 +453,10 @@ function buildGantt(slide, phases, timeSlots, cfg) {
     var totalW  = cfg.labelWidthRE + cfg.chartWidthRE;
     var totalH  = cfg.headerHeightRE + (cfg.rowHeightRE * phases.length);
 
-    /* ── 1) HINTERGRUND (WEISS) ── */
+    /* Array für Bar-Referenzen (Shape + Farbe) */
+    var barRefs = [];
+
+    /* ── 1) HINTERGRUND ── */
     var bg = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
     bg.left   = re2pt(x0);
     bg.top    = re2pt(y0);
@@ -503,31 +511,22 @@ function buildGantt(slide, phases, timeSlots, cfg) {
         }
     }
 
-    /* ══════════════════════════════════════════════════════════
-       4) VERTIKALE RASTERLINIEN
-       FIX: Dünne Rechtecke statt addLine() → garantiert gerade!
-       ══════════════════════════════════════════════════════════ */
+    /* ── 4) RASTERLINIEN (dünne Rechtecke, garantiert gerade) ── */
     if (cfg.showGridLines) {
-        var gridH = totalH;
-        /* Linienbreite: 0.5pt (≈ 0.018 cm) */
-        var lineWidthPt = 0.5;
-
         for (var g = 0; g <= timeSlots.length; g++) {
             var gx = chartX0 + (g * cfg.slotWidthRE);
             var gl = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
             gl.left   = re2pt(gx);
             gl.top    = re2pt(y0);
-            gl.width  = lineWidthPt;
-            gl.height = re2pt(gridH);
+            gl.width  = 0.5;
+            gl.height = re2pt(totalH);
             gl.fill.setSolidColor("D5D8DC");
             gl.lineFormat.visible = false;
             gl.name = "GANTT_GRID_" + g;
         }
     }
 
-    /* ══════════════════════════════════════════════════════════
-       5) BALKEN – jede Phase mit ihrer individuellen Farbe
-       ══════════════════════════════════════════════════════════ */
+    /* ── 5) BALKEN – Shapes anlegen, Farbe NICHT hier setzen! ── */
     var totalMs = cfg.endDate.getTime() - cfg.startDate.getTime();
     for (var p = 0; p < phases.length; p++) {
         var phase = phases[p];
@@ -550,15 +549,11 @@ function buildGantt(slide, phases, timeSlots, cfg) {
         bar.top    = re2pt(barY);
         bar.width  = re2pt(barWidthRE);
         bar.height = re2pt(cfg.barHeightRE);
-
-        /* ── FARBE: phase.color ist 6-stellig UPPERCASE (z.B. "2471A3") ── */
-        try {
-            bar.fill.setSolidColor(phase.color);
-        } catch (err) {
-            bar.fill.setSolidColor("2471A3");
-        }
         bar.lineFormat.visible = false;
         bar.name = "GANTT_BAR_" + p;
+
+        /* Farbe MERKEN – wird in Pass 2 nach sync gesetzt */
+        barRefs.push({ shape: bar, color: phase.color });
 
         /* Balken-Text */
         if (barWidthRE >= 5) {
@@ -581,9 +576,7 @@ function buildGantt(slide, phases, timeSlots, cfg) {
         }
     }
 
-    /* ══════════════════════════════════════════════════════════
-       6) HEUTE-LINIE (ebenfalls als dünnes Rechteck!)
-       ══════════════════════════════════════════════════════════ */
+    /* ── 6) HEUTE-LINIE (dünnes Rechteck) ── */
     if (cfg.showToday) {
         var now = new Date();
         if (now >= cfg.startDate && now <= cfg.endDate) {
@@ -599,4 +592,6 @@ function buildGantt(slide, phases, timeSlots, cfg) {
             tl.name = "GANTT_TODAY";
         }
     }
+
+    return barRefs;
 }
