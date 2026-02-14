@@ -3,6 +3,13 @@
    ═══════════════════════════════════════════════════════════════
    Erzeugt GANTT-Diagramme direkt in PowerPoint als Shapes.
    Alle Maße in Rastereinheiten (RE), Position immer ganzzahlig.
+   
+   FIXES:
+   1. Phasenfarben werden korrekt uebernommen (fill.setSolidColor)
+   2. Abwechselnde weiss/grau Schattierung entfernt
+   3. Zeilenhoehe (rowHeightRE) und Balkenhoehe (barHeightRE) als Input
+   4. TextBox ueber Balken ist transparent (fill.clear)
+   5. textFrame.textRange statt textFrame.getRange()
  */
 
 /* ══════════════════════════════════════════════════════════════
@@ -11,13 +18,17 @@
 var gridUnitCm = 0.63;
 var apiOk = false;
 
-/* Feste Diagramm-Position & Größe in RE */
+/* Feste Diagramm-Position & Groesse in RE */
 var GANTT_LEFT  = 8;
 var GANTT_TOP   = 17;
 var GANTT_MAX_W = 118;
 var GANTT_MAX_H = 69;
 
-/* Farb-Palette für Phasen */
+/* Zeilenhoehe & Balkenhoehe in RE (vom User einstellbar) */
+var ROW_HEIGHT_RE = 4;
+var BAR_HEIGHT_RE = 3;
+
+/* Farb-Palette fuer Phasen */
 var PHASE_COLORS = [
     "#2471A3", "#27AE60", "#8E44AD", "#E67E22",
     "#2980B9", "#1ABC9C", "#C0392B", "#D4AC0D",
@@ -64,7 +75,7 @@ function initUI() {
         });
     });
 
-    /* Position & Größe Inputs */
+    /* Position & Groesse Inputs */
     var leftEl = document.getElementById("ganttLeft");
     var topEl  = document.getElementById("ganttTop");
     var maxWEl = document.getElementById("ganttMaxW");
@@ -81,6 +92,35 @@ function initUI() {
     });
     if (maxHEl) maxHEl.addEventListener("change", function () {
         var v = parseInt(this.value); if (!isNaN(v) && v > 0) GANTT_MAX_H = v;
+    });
+
+    /* Zeilenhoehe & Balkenhoehe Inputs (NEU) */
+    var rowHEl = document.getElementById("rowHeightRE");
+    var barHEl = document.getElementById("barHeightRE");
+
+    if (rowHEl) rowHEl.addEventListener("change", function () {
+        var v = parseInt(this.value);
+        if (!isNaN(v) && v >= 2) {
+            ROW_HEIGHT_RE = v;
+            /* Balkenhoehe darf nicht groesser als Zeilenhoehe sein */
+            var barEl = document.getElementById("barHeightRE");
+            if (barEl && BAR_HEIGHT_RE >= ROW_HEIGHT_RE) {
+                BAR_HEIGHT_RE = ROW_HEIGHT_RE - 1;
+                barEl.value = BAR_HEIGHT_RE;
+            }
+        }
+    });
+    if (barHEl) barHEl.addEventListener("change", function () {
+        var v = parseInt(this.value);
+        if (!isNaN(v) && v >= 1) {
+            if (v >= ROW_HEIGHT_RE) {
+                showStatus("Balkenhoehe muss kleiner als Zeilenhoehe sein!", "warning");
+                this.value = ROW_HEIGHT_RE - 1;
+                BAR_HEIGHT_RE = ROW_HEIGHT_RE - 1;
+            } else {
+                BAR_HEIGHT_RE = v;
+            }
+        }
     });
 
     /* Phase Buttons */
@@ -146,7 +186,7 @@ function addPhaseRow() {
 }
 
 function removeLastPhase() {
-    if (phaseCount <= 1) { showStatus("Mind. 1 Phase nötig!", "warning"); return; }
+    if (phaseCount <= 1) { showStatus("Mind. 1 Phase noetig!", "warning"); return; }
     var el = document.getElementById("phase_" + phaseCount);
     if (el) el.remove();
     phaseCount--;
@@ -193,7 +233,6 @@ function getTimeSlots(startDate, endDate, unit) {
         }
     }
     else if (unit === "weeks") {
-        /* Start auf Montag der Startwoche setzen */
         d = new Date(startDate);
         var dow  = d.getDay();
         var diff = (dow === 0) ? -6 : 1 - dow;
@@ -214,7 +253,7 @@ function getTimeSlots(startDate, endDate, unit) {
         d = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
         while (d <= endDate) {
             var mEnd   = new Date(d.getFullYear(), d.getMonth() + 1, 1);
-            var mNames = ["Jan","Feb","Mär","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+            var mNames = ["Jan","Feb","Mar","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
             slots.push({
                 label: mNames[d.getMonth()] + " " + d.getFullYear().toString().substr(2),
                 start: new Date(d),
@@ -253,14 +292,14 @@ function getISOWeek(d) {
    HILFSFUNKTION: TextBox erstellen und formatieren
    ══════════════════════════════════════════════════════════════
    
-   Die PowerPoint JS API nutzt:
-     slide.shapes.addTextBox(text, options)  → gibt Shape zurück
-     shape.textFrame.textRange              → TextRange (Property!)
-     shape.textFrame.textRange.font         → Font-Einstellungen
+   PowerPoint JS API (korrekt):
+     slide.shapes.addTextBox(text, {left, top, width, height})
+     shape.textFrame.textRange          → TextRange (Property!)
+     shape.textFrame.textRange.font     → Font-Einstellungen
    
    NICHT: textFrame.getRange() ← das ist Word-API!
    ══════════════════════════════════════════════════════════════ */
-function addStyledTextBox(slide, text, left, top, width, height, name, fontSize, fontColor, bold, alignment) {
+function addStyledTextBox(slide, text, left, top, width, height, name, fontSize, fontColor, bold, alignment, fillColor) {
     var opts = {
         left:   left,
         top:    top,
@@ -270,6 +309,7 @@ function addStyledTextBox(slide, text, left, top, width, height, name, fontSize,
     var tb = slide.shapes.addTextBox(text, opts);
     tb.name = name;
 
+    /* Textformatierung ueber textRange (NICHT getRange!) */
     var tr = tb.textFrame.textRange;
     tr.font.size  = fontSize;
     tr.font.color = fontColor;
@@ -277,16 +317,23 @@ function addStyledTextBox(slide, text, left, top, width, height, name, fontSize,
     tr.paragraphFormat.horizontalAlignment = alignment;
 
     tb.textFrame.autoSizeSetting = PowerPoint.ShapeAutoSize.autoSizeNone;
+    tb.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middleCentered;
+
+    /* Hintergrund: transparent oder Farbe */
+    if (fillColor === "transparent" || !fillColor) {
+        tb.fill.clear();
+    } else {
+        tb.fill.setSolidColor(fillColor);
+    }
+
+    /* Kein Rahmen */
+    tb.lineFormat.visible = false;
 
     return tb;
 }
 
 /* ══════════════════════════════════════════════════════════════
    GANTT GENERATOR – Hauptfunktion
-   ══════════════════════════════════════════════════════════════
-   Alles in ganzen Rastereinheiten (RE).
-   Position: Links=8 RE, Oben=17 RE
-   Max: Breite=118 RE, Höhe=69 RE
    ══════════════════════════════════════════════════════════════ */
 function generateGantt() {
     /* Eingaben lesen */
@@ -302,7 +349,7 @@ function generateGantt() {
     }
 
     var phases = getPhases();
-    if (phases.length === 0) { showStatus("Mind. 1 Phase mit Daten nötig!", "error"); return; }
+    if (phases.length === 0) { showStatus("Mind. 1 Phase mit Daten noetig!", "error"); return; }
 
     var showToday     = document.getElementById("showToday").checked;
     var showHeader    = document.getElementById("showHeader").checked;
@@ -313,39 +360,45 @@ function generateGantt() {
     if (timeSlots.length === 0)   { showStatus("Keine Zeiteinheiten im Bereich!", "error"); return; }
     if (timeSlots.length > 120)   { showStatus("Zu viele Zeiteinheiten (max 120)!", "error"); return; }
 
-    /* ── Position & Größe aus Inputs lesen ── */
+    /* ── Position & Groesse aus Inputs lesen ── */
     GANTT_LEFT  = parseInt(document.getElementById("ganttLeft").value)  || 8;
     GANTT_TOP   = parseInt(document.getElementById("ganttTop").value)   || 17;
     GANTT_MAX_W = parseInt(document.getElementById("ganttMaxW").value)  || 118;
     GANTT_MAX_H = parseInt(document.getElementById("ganttMaxH").value)  || 69;
 
+    /* ── Zeilenhoehe & Balkenhoehe aus Inputs lesen (NEU) ── */
+    ROW_HEIGHT_RE = parseInt(document.getElementById("rowHeightRE").value) || 4;
+    BAR_HEIGHT_RE = parseInt(document.getElementById("barHeightRE").value) || 3;
+
+    /* Sicherheitscheck: Balkenhoehe < Zeilenhoehe */
+    if (BAR_HEIGHT_RE >= ROW_HEIGHT_RE) {
+        BAR_HEIGHT_RE = ROW_HEIGHT_RE - 1;
+    }
+    if (BAR_HEIGHT_RE < 1) BAR_HEIGHT_RE = 1;
+
     /* ── Layout-Berechnung in RE (ganzzahlig) ── */
-    var labelWidthRE = showLabels ? Math.floor(GANTT_MAX_W * 0.15) : 0; /* ~15% für Labels */
+    var labelWidthRE = showLabels ? Math.floor(GANTT_MAX_W * 0.15) : 0;
     if (labelWidthRE < 8 && showLabels) labelWidthRE = 8;
 
-    var chartWidthRE  = GANTT_MAX_W - labelWidthRE;
+    var chartWidthRE   = GANTT_MAX_W - labelWidthRE;
     var headerHeightRE = showHeader ? 3 : 0;
 
     /* Spaltenbreite in RE – mindestens 1 RE pro Slot */
     var colWidthRE = Math.max(1, Math.floor(chartWidthRE / timeSlots.length));
-    /* Tatsächliche Chart-Breite anpassen */
     var actualChartWidthRE = colWidthRE * timeSlots.length;
     if (actualChartWidthRE > chartWidthRE) {
         colWidthRE = Math.floor(chartWidthRE / timeSlots.length);
         actualChartWidthRE = colWidthRE * timeSlots.length;
     }
 
-    /* Zeilenhöhe in RE – jede Phase 1 RE kleiner Abstand zur vorherigen */
-    var availHeightRE = GANTT_MAX_H - headerHeightRE;
-    var rowHeightRE   = Math.max(2, Math.floor(availHeightRE / (phases.length + 1)));
-    if (rowHeightRE > 6) rowHeightRE = 6;
-    var barHeightRE   = Math.max(1, rowHeightRE - 1); /* 1 RE kleiner */
+    /* Zeilenhoehe & Balkenhoehe jetzt direkt aus Input (nicht mehr auto-berechnet) */
+    var rowHeightRE = ROW_HEIGHT_RE;
+    var barHeightRE = BAR_HEIGHT_RE;
 
+    /* Pruefen ob alles in den verfuegbaren Bereich passt */
     var totalHeightRE = headerHeightRE + (rowHeightRE * phases.length);
     if (totalHeightRE > GANTT_MAX_H) {
-        rowHeightRE   = Math.floor((GANTT_MAX_H - headerHeightRE) / phases.length);
-        barHeightRE   = Math.max(1, rowHeightRE - 1);
-        totalHeightRE = headerHeightRE + (rowHeightRE * phases.length);
+        showStatus("Warnung: GANTT (" + totalHeightRE + " RE) groesser als Max (" + GANTT_MAX_H + " RE)!", "warning");
     }
 
     showStatus("Erstelle GANTT... " + timeSlots.length + " Spalten, " + phases.length + " Phasen", "info");
@@ -396,16 +449,16 @@ function generateGantt() {
    BUILD GANTT – Shapes auf Folie erzeugen
    ══════════════════════════════════════════════════════════════ */
 function buildGantt(ctx, slide, timeSlots, phases, cfg) {
-    var x0 = GANTT_LEFT;  /* Start links in RE */
-    var y0 = GANTT_TOP;   /* Start oben in RE */
+    var x0 = GANTT_LEFT;
+    var y0 = GANTT_TOP;
 
-    var chartX0 = x0 + cfg.labelWidthRE;  /* Chart-Bereich Start X */
-    var chartY0 = y0 + cfg.headerHeightRE; /* Chart-Bereich Start Y */
+    var chartX0 = x0 + cfg.labelWidthRE;
+    var chartY0 = y0 + cfg.headerHeightRE;
 
     var totalMs = cfg.endDate.getTime() - cfg.startDate.getTime();
 
     /* ────────────────────────────────────────────
-       1) HINTERGRUND
+       1) HINTERGRUND (transparent/leicht)
        ──────────────────────────────────────────── */
     var bgW = cfg.labelWidthRE + cfg.chartWidthRE;
     var bgH = cfg.headerHeightRE + (cfg.rowHeightRE * phases.length);
@@ -414,7 +467,7 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
     bg.top    = re2pt(y0);
     bg.width  = re2pt(bgW);
     bg.height = re2pt(bgH);
-    bg.fill.setSolidColor("F5F5F5");
+    bg.fill.setSolidColor("FFFFFF");
     bg.lineFormat.visible = false;
     bg.name = "GANTT_BG";
 
@@ -443,10 +496,11 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
                 re2pt(cfg.colWidthRE),
                 re2pt(cfg.headerHeightRE),
                 "GANTT_HDR_" + h,
-                7,        /* fontSize */
-                "FFFFFF",  /* fontColor */
-                true,     /* bold */
-                PowerPoint.ParagraphHorizontalAlignment.center
+                7,          /* fontSize */
+                "FFFFFF",   /* fontColor */
+                true,       /* bold */
+                PowerPoint.ParagraphHorizontalAlignment.center,
+                "transparent"  /* fillColor – transparent, Header BG liegt darunter */
             );
         }
     }
@@ -465,28 +519,20 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
                 re2pt(cfg.labelWidthRE),
                 re2pt(cfg.rowHeightRE),
                 "GANTT_LBL_" + l,
-                8,        /* fontSize */
-                "1A1A2E",  /* fontColor */
-                true,     /* bold */
-                PowerPoint.ParagraphHorizontalAlignment.left
+                8,          /* fontSize */
+                "1A1A2E",   /* fontColor */
+                true,       /* bold */
+                PowerPoint.ParagraphHorizontalAlignment.left,
+                "transparent"  /* fillColor – transparent */
             );
         }
     }
 
     /* ────────────────────────────────────────────
-       4) ZEILEN-HINTERGRUND (abwechselnd)
+       4) ABWECHSELNDE ZEILEN-SCHATTIERUNG
+       → ENTFERNT (Anforderung 2)
        ──────────────────────────────────────────── */
-    for (var r = 0; r < phases.length; r++) {
-        var ry    = chartY0 + (r * cfg.rowHeightRE);
-        var rowBg = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
-        rowBg.left   = re2pt(chartX0);
-        rowBg.top    = re2pt(ry);
-        rowBg.width  = re2pt(cfg.chartWidthRE);
-        rowBg.height = re2pt(cfg.rowHeightRE);
-        rowBg.fill.setSolidColor(r % 2 === 0 ? "FFFFFF" : "F0F0F0");
-        rowBg.lineFormat.visible = false;
-        rowBg.name = "GANTT_ROWBG_" + r;
-    }
+    /* Kein abwechselnder Hintergrund mehr. */
 
     /* ────────────────────────────────────────────
        5) VERTIKALE RASTERLINIEN
@@ -498,7 +544,7 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
             var gl = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
             gl.left   = re2pt(gx);
             gl.top    = re2pt(y0);
-            gl.width  = c2p(0.02); /* Haarlinie */
+            gl.width  = c2p(0.02);
             gl.height = re2pt(gridH);
             gl.fill.setSolidColor("B0B0B0");
             gl.lineFormat.visible = false;
@@ -509,10 +555,10 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
     /* ────────────────────────────────────────────
        6) GANTT-BALKEN (Phasen)
        
-       Balkenhöhe = rowHeightRE - 1 RE (1 RE kleiner)
-       Balken vertikal zentriert in der Zeile.
-       Horizontale Position: proportional zur Zeit,
-       aber auf ganze RE gerundet.
+       FIX 1: Farbe wird korrekt aus phase.color 
+              uebernommen (ohne #, z.B. "2471A3")
+       FIX 2: TextBox ueber dem Balken ist transparent 
+              (fill.clear), damit die Balkenfarbe sichtbar bleibt
        ──────────────────────────────────────────── */
     for (var p = 0; p < phases.length; p++) {
         var phase = phases[p];
@@ -530,21 +576,23 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
         var barRightRE = Math.round(endRatio   * cfg.chartWidthRE);
         var barWidthRE = Math.max(1, barRightRE - barLeftRE);
 
-        /* Vertikal: zentriert in der Zeile, 1 RE kleiner */
+        /* Vertikal: zentriert in der Zeile */
         var rowY       = chartY0 + (p * cfg.rowHeightRE);
         var barYOffset = Math.floor((cfg.rowHeightRE - cfg.barHeightRE) / 2);
         var barY       = rowY + barYOffset;
 
+        /* Balken-Shape mit der Phasenfarbe (FIX 1) */
         var bar = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.roundedRectangle);
         bar.left   = re2pt(chartX0 + barLeftRE);
         bar.top    = re2pt(barY);
         bar.width  = re2pt(barWidthRE);
         bar.height = re2pt(cfg.barHeightRE);
-        bar.fill.setSolidColor(phase.color);
+        bar.fill.setSolidColor(phase.color);   /* z.B. "2471A3" – OHNE # */
         bar.lineFormat.visible = false;
         bar.name = "GANTT_BAR_" + p;
 
-        /* Balken-Text (Phasenname auf dem Balken) */
+        /* Balken-Text (Phasenname auf dem Balken) 
+           FIX: fillColor = "transparent" damit der Balken darunter sichtbar bleibt! */
         if (barWidthRE >= 4) {
             addStyledTextBox(
                 slide,
@@ -554,10 +602,11 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
                 re2pt(barWidthRE),
                 re2pt(cfg.barHeightRE),
                 "GANTT_BARTXT_" + p,
-                7,        /* fontSize */
-                "FFFFFF",  /* fontColor */
-                true,     /* bold */
-                PowerPoint.ParagraphHorizontalAlignment.center
+                7,              /* fontSize */
+                "FFFFFF",       /* fontColor – weiss auf farbigem Balken */
+                true,           /* bold */
+                PowerPoint.ParagraphHorizontalAlignment.center,
+                "transparent"   /* fillColor – TRANSPARENT! Balkenfarbe scheint durch */
             );
         }
     }
@@ -578,7 +627,7 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
             var tLine = slide.shapes.addGeometricShape(PowerPoint.GeometricShapeType.rectangle);
             tLine.left   = re2pt(todayX);
             tLine.top    = re2pt(y0);
-            tLine.width  = c2p(0.06); /* Etwas dicker */
+            tLine.width  = c2p(0.06);
             tLine.height = re2pt(totalH);
             tLine.fill.setSolidColor("FF0000");
             tLine.lineFormat.visible = false;
@@ -593,10 +642,11 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
                 c2p(1.5),
                 c2p(0.5),
                 "GANTT_TODAY_LBL",
-                6,        /* fontSize */
-                "FF0000",  /* fontColor */
-                true,     /* bold */
-                PowerPoint.ParagraphHorizontalAlignment.center
+                6,              /* fontSize */
+                "FF0000",       /* fontColor */
+                true,           /* bold */
+                PowerPoint.ParagraphHorizontalAlignment.center,
+                "transparent"   /* fillColor */
             );
         }
     }
