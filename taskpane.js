@@ -52,24 +52,29 @@ function initUI() {
     document.querySelectorAll(".pre").forEach(function (b) {
         b.addEventListener("click", function () {
             gridUnitCm = parseFloat(this.dataset.v);
-            document.getElementById("reInput").value = gridUnitCm;
             document.querySelectorAll(".pre").forEach(function (p) { p.classList.remove("active"); });
             this.classList.add("active");
             showStatus("RE = " + gridUnitCm.toFixed(2) + " cm", "info");
         });
     });
 
-    /* RE manuell */
-    var rei = document.getElementById("reInput");
-    rei.addEventListener("change", function () {
-        var v = parseFloat(this.value);
-        if (!isNaN(v) && v > 0) {
-            gridUnitCm = v;
-            document.querySelectorAll(".pre").forEach(function (p) {
-                p.classList.toggle("active", parseFloat(p.dataset.v) === v);
-            });
-            showStatus("RE = " + gridUnitCm.toFixed(2) + " cm", "info");
-        }
+    /* Position & Größe Inputs */
+    var leftEl = document.getElementById("ganttLeft");
+    var topEl = document.getElementById("ganttTop");
+    var maxWEl = document.getElementById("ganttMaxW");
+    var maxHEl = document.getElementById("ganttMaxH");
+
+    if (leftEl) leftEl.addEventListener("change", function () {
+        var v = parseInt(this.value); if (!isNaN(v) && v >= 0) GANTT_LEFT = v;
+    });
+    if (topEl) topEl.addEventListener("change", function () {
+        var v = parseInt(this.value); if (!isNaN(v) && v >= 0) GANTT_TOP = v;
+    });
+    if (maxWEl) maxWEl.addEventListener("change", function () {
+        var v = parseInt(this.value); if (!isNaN(v) && v > 0) GANTT_MAX_W = v;
+    });
+    if (maxHEl) maxHEl.addEventListener("change", function () {
+        var v = parseInt(this.value); if (!isNaN(v) && v > 0) GANTT_MAX_H = v;
     });
 
     /* Phase Buttons */
@@ -269,6 +274,12 @@ function generateGantt() {
     var timeSlots = getTimeSlots(startDate, endDate, unit);
     if (timeSlots.length === 0) { showStatus("Keine Zeiteinheiten im Bereich!", "error"); return; }
     if (timeSlots.length > 120) { showStatus("Zu viele Zeiteinheiten (max 120)!", "error"); return; }
+
+    /* ── Position & Größe aus Inputs lesen ── */
+    GANTT_LEFT  = parseInt(document.getElementById("ganttLeft").value)  || 8;
+    GANTT_TOP   = parseInt(document.getElementById("ganttTop").value)   || 17;
+    GANTT_MAX_W = parseInt(document.getElementById("ganttMaxW").value)  || 118;
+    GANTT_MAX_H = parseInt(document.getElementById("ganttMaxH").value)  || 69;
 
     /* ── Layout-Berechnung in RE (ganzzahlig) ── */
     var labelWidthRE = showLabels ? Math.floor(GANTT_MAX_W * 0.15) : 0; /* ~15% für Labels */
@@ -547,7 +558,7 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
             tLbl.textFrame.autoSizeSetting = "autoSizeNone";
 
             var tlf = tLbl.textFrame.getRange();
-            tlf.text = "▼ Heute";
+            tlf.text = "\u25BC Heute";
             tlf.font.size = 6;
             tlf.font.color = "FF0000";
             tlf.font.bold = true;
@@ -559,23 +570,23 @@ function buildGantt(ctx, slide, timeSlots, phases, cfg) {
        8) SYNC & STATUS
        ──────────────────────────────────────────── */
     return ctx.sync().then(function () {
-        var info = phases.length + " Phasen · " + timeSlots.length + " " +
+        var info = phases.length + " Phasen \u00b7 " + timeSlots.length + " " +
             (cfg.unit === "days" ? "Tage" :
              cfg.unit === "weeks" ? "KW" :
              cfg.unit === "months" ? "Monate" : "Quartale");
-        showStatus("GANTT erstellt ✓ · " + info, "success");
+        showStatus("GANTT erstellt \u2713 \u00b7 " + info, "success");
 
         /* Info-Box anzeigen */
         var el = document.getElementById("infoBox");
         el.innerHTML =
             '<div class="info-item"><span class="info-label">Position:</span>' +
-            '<span class="info-value">' + GANTT_LEFT + ' × ' + GANTT_TOP + ' RE</span></div>' +
-            '<div class="info-item"><span class="info-label">Größe:</span>' +
-            '<span class="info-value">' + (cfg.labelWidthRE + cfg.chartWidthRE) + ' × ' +
+            '<span class="info-value">' + GANTT_LEFT + ' \u00d7 ' + GANTT_TOP + ' RE</span></div>' +
+            '<div class="info-item"><span class="info-label">Gr\u00f6\u00dfe:</span>' +
+            '<span class="info-value">' + (cfg.labelWidthRE + cfg.chartWidthRE) + ' \u00d7 ' +
             (cfg.headerHeightRE + cfg.rowHeightRE * phases.length) + ' RE</span></div>' +
             '<div class="info-item"><span class="info-label">Spaltenbreite:</span>' +
             '<span class="info-value">' + cfg.colWidthRE + ' RE</span></div>' +
-            '<div class="info-item"><span class="info-label">Zeilenhöhe:</span>' +
+            '<div class="info-item"><span class="info-label">Zeilenh\u00f6he:</span>' +
             '<span class="info-value">' + cfg.rowHeightRE + ' RE (Balken: ' + cfg.barHeightRE + ' RE)</span></div>';
         el.classList.add("visible");
     });
