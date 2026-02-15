@@ -1,18 +1,17 @@
 /*
  ═══════════════════════════════════════════════════════
- Droege GANTT Generator  –  taskpane.js  v2.10
+ Droege GANTT Generator  –  taskpane.js  v2.12
 
- UPDATES v2.10:
-  - Schriftgröße 11pt für alle Texte
-  - Kalenderwochen nur Nummer (ohne "KW")
-  - Heute-Label unten statt oben
-  - Echte vertikale Linien (addLine mit width=0.01)
+ UPDATES v2.12:
+  - Spaltenbreite als Dropdown auswählbar
+  - Monatszeile ohne Jahreszahl
+  - Meilenstein-Dreieck zeigt nach oben (0°)
 
  DROEGE GROUP · 2026
  ═══════════════════════════════════════════════════════
 */
 
-var VERSION = "2.10";
+var VERSION = "2.12";
 var CM = 28.3465;
 var gridUnitCm = 0.21;
 var ganttPhaseCount = 0;
@@ -217,7 +216,7 @@ function setSlideSize() {
 // ═══════════════════════════════════════════
 
 function createGanttChart() {
-  console.log("=== createGanttChart START v2.10 ===");
+  console.log("=== createGanttChart START v2.12 ===");
   
   // Eingaben lesen
   var projStart = new Date(document.getElementById("ganttStart").value);
@@ -228,6 +227,7 @@ function createGanttChart() {
   var barHeightRE = parseInt(document.getElementById("ganttBarH").value) || 3;
   var rowHeightRE = parseInt(document.getElementById("ganttRowH").value) || 5;
   var showTodayLine = document.getElementById("ganttTodayLine").checked;
+  var colWidthRE = parseInt(document.getElementById("ganttColW").value) || 3;
 
   // Validierung
   if (isNaN(projStart.getTime()) || isNaN(projEnd.getTime())) {
@@ -247,7 +247,7 @@ function createGanttChart() {
     return;
   }
 
-  // Zeiteinheiten berechnen
+  // Zeiteinheiten berechnen - jetzt mit fester Breite in RE
   var timeUnits = computeTimeUnits(projStart, projEnd, unit);
   console.log("Zeiteinheiten:", timeUnits.length);
   
@@ -286,12 +286,12 @@ function createGanttChart() {
             throw new Error("Keine Folie vorhanden");
           }
           return drawGanttOnSlide(ctx, allSlides.items[0], projStart, projEnd, totalDays, 
-                                   timeUnits, phases, labelWidthRE, headerHeightRE, barHeightRE, rowHeightRE, showTodayLine);
+                                   timeUnits, phases, labelWidthRE, headerHeightRE, barHeightRE, rowHeightRE, showTodayLine, colWidthRE, unit);
         });
       }
       
       return drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, 
-                               timeUnits, phases, labelWidthRE, headerHeightRE, barHeightRE, rowHeightRE, showTodayLine);
+                               timeUnits, phases, labelWidthRE, headerHeightRE, barHeightRE, rowHeightRE, showTodayLine, colWidthRE, unit);
     });
     
   }).catch(function(err) {
@@ -300,7 +300,7 @@ function createGanttChart() {
   });
 }
 
-function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, phases, labelWidthRE, headerHeightRE, barHeightRE, rowHeightRE, showTodayLine) {
+function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, phases, labelWidthRE, headerHeightRE, barHeightRE, rowHeightRE, showTodayLine, colWidthRE, unit) {
   console.log("drawGanttOnSlide gestartet");
   
   // Layout berechnen in Points
@@ -308,30 +308,43 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
   var headerHeightPt = re2pt(headerHeightRE);
   var barHeightPt = re2pt(barHeightRE);
   var rowHeightPt = re2pt(rowHeightRE);
+  var colWidthPt = re2pt(colWidthRE);  // Feste Spaltenbreite in RE
   
   // Balken-Padding (zentriert in Zeile)
   var barPadding = Math.max(2, Math.round((rowHeightPt - barHeightPt) / 2));
   
   var chartLeft = GANTT_LEFT_PT + labelWidthPt;
-  var chartWidth = GANTT_WIDTH_PT - labelWidthPt;
-  var chartTop = GANTT_TOP_PT + headerHeightPt;
+  
+  // Chart-Breite basiert jetzt auf Anzahl Zeiteinheiten × Spaltenbreite
+  var chartWidth = timeUnits.length * colWidthPt;
+  var totalWidth = labelWidthPt + chartWidth;
+  
+  // Prüfen ob Monatszeile benötigt wird (bei Tage, Wochen, Quartale)
+  var needsMonthRow = (unit === "day" || unit === "week" || unit === "quarter");
+  var monthRowHeightPt = needsMonthRow ? headerHeightPt : 0;
+  
+  // Header-Bereich (Monatszeile + Hauptheader)
+  var totalHeaderHeight = monthRowHeightPt + headerHeightPt;
+  var chartTop = GANTT_TOP_PT + totalHeaderHeight;
   
   // Gesamthöhe berechnen
-  var totalHeight = headerHeightPt + (phases.length * rowHeightPt);
+  var totalHeight = totalHeaderHeight + (phases.length * rowHeightPt);
   var chartBottom = GANTT_TOP_PT + totalHeight;
   
-  // Höhe der Linien (vom Header bis zum Ende)
-  var lineHeight = chartBottom - chartTop;
+  // Höhe der Linien (vom Hauptheader bis zum Ende)
+  var lineHeight = chartBottom - (GANTT_TOP_PT + monthRowHeightPt + headerHeightPt);
   
   console.log("Layout:", {
     labelWidthPt: labelWidthPt,
     headerHeightPt: headerHeightPt,
+    monthRowHeightPt: monthRowHeightPt,
     barHeightPt: barHeightPt,
     rowHeightPt: rowHeightPt,
+    colWidthPt: colWidthPt,
     chartLeft: chartLeft,
     chartWidth: chartWidth,
     totalHeight: totalHeight,
-    lineHeight: lineHeight
+    needsMonthRow: needsMonthRow
   });
 
   // ═══ 1. HINTERGRUND ═══
@@ -341,28 +354,60 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
     {
       left: Math.round(GANTT_LEFT_PT),
       top: Math.round(GANTT_TOP_PT),
-      width: Math.round(GANTT_WIDTH_PT),
+      width: Math.round(totalWidth),
       height: Math.round(totalHeight)
     }
   );
   bg.fill.setSolidColor("FFFFFF");
   
-  // ═══ 2. HEADER-ZELLEN ═══
-  console.log("2. Header-Zellen: " + timeUnits.length);
+  // ═══ 2. MONATSZEILE (wenn benötigt) - OHNE JAHRESZAHL ═══
+  if (needsMonthRow) {
+    console.log("2a. Monatszeile (ohne Jahreszahl)");
+    var monthGroups = computeMonthGroups(timeUnits, unit);
+    var monthX = 0;
+    
+    for (var m = 0; m < monthGroups.length; m++) {
+      var mg = monthGroups[m];
+      var monthWidth = mg.count * colWidthPt;
+      
+      var monthCell = slide.shapes.addGeometricShape(
+        PowerPoint.GeometricShapeType.rectangle,
+        {
+          left: Math.round(chartLeft + monthX),
+          top: Math.round(GANTT_TOP_PT),
+          width: Math.round(monthWidth),
+          height: Math.round(monthRowHeightPt)
+        }
+      );
+      monthCell.fill.setSolidColor("B0B0B0");
+      
+      try {
+        monthCell.textFrame.textRange.text = mg.label;  // Nur Monatsname, keine Jahreszahl
+        monthCell.textFrame.textRange.font.size = FONT_SIZE;
+        monthCell.textFrame.textRange.font.bold = true;
+        monthCell.textFrame.textRange.font.color = "000000";
+        monthCell.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middle;
+        monthCell.textFrame.textRange.paragraphFormat.alignment = PowerPoint.ParagraphAlignment.center;
+      } catch(e) {}
+      
+      monthX += monthWidth;
+    }
+  }
+  
+  // ═══ 2b. HEADER-ZELLEN (Zeiteinheiten) ═══
+  console.log("2b. Header-Zellen: " + timeUnits.length);
   var colX = 0;
-  var linePositions = []; // Speichere Positionen für Trennlinien
+  var linePositions = [];
+  var headerTop = GANTT_TOP_PT + monthRowHeightPt;
   
   for (var c = 0; c < timeUnits.length; c++) {
-    var colWidth = Math.round((timeUnits[c].days / totalDays) * chartWidth);
-    if (colWidth < 10) colWidth = 10;
-    
-    // Header-Zelle
+    // Header-Zelle mit fester Breite
     var hdr = slide.shapes.addGeometricShape(
       PowerPoint.GeometricShapeType.rectangle,
       {
         left: Math.round(chartLeft + colX),
-        top: Math.round(GANTT_TOP_PT),
-        width: colWidth,
+        top: Math.round(headerTop),
+        width: Math.round(colWidthPt),
         height: Math.round(headerHeightPt)
       }
     );
@@ -379,30 +424,24 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
     
     // Position für Trennlinie speichern (außer nach letzter Spalte)
     if (c < timeUnits.length - 1) {
-      linePositions.push(chartLeft + colX + colWidth);
+      linePositions.push(chartLeft + colX + colWidthPt);
     }
     
-    colX += colWidth;
+    colX += colWidthPt;
   }
   
-  // ═══ 3. VERTIKALE TRENNLINIEN (echte Linien mit addLine) ═══
-  // Für addLine: left/top = Startpunkt, width/height = Distanz zum Endpunkt
-  // Vertikale Linie: width muss sehr klein sein (0.01), height = Länge
-  console.log("3. Vertikale Trennlinien (echte Linien): " + linePositions.length);
+  // ═══ 3. VERTIKALE TRENNLINIEN ═══
+  console.log("3. Vertikale Trennlinien: " + linePositions.length);
   
   for (var i = 0; i < linePositions.length; i++) {
     var lineX = linePositions[i];
     
-    // Echte vertikale Linie
-    // left = X-Position, top = Startpunkt oben
-    // width = 0.01 (minimal, damit Linie senkrecht bleibt)
-    // height = Länge der Linie nach unten
     var line = slide.shapes.addLine(
       PowerPoint.ConnectorType.straight,
       {
         left: lineX,
         top: chartTop,
-        width: 0.01,  // Sehr klein für perfekt senkrechte Linie
+        width: 0.01,
         height: lineHeight
       }
     );
@@ -411,7 +450,7 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
     line.lineFormat.weight = 0.75;
   }
 
-  // ═══ 4. PHASEN-ZEILEN UND BALKEN ═══
+  // ═══ 4. PHASEN-ZEILEN, BALKEN UND MEILENSTEINE ═══
   console.log("4. Phasen: " + phases.length);
   
   for (var p = 0; p < phases.length; p++) {
@@ -450,10 +489,11 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
     console.log("  Tage: " + phaseStartDay + " - " + phaseEndDay);
     
     if (phaseEndDay > phaseStartDay) {
+      // Berechne Position basierend auf fester Spaltenbreite
       var barLeft = chartLeft + (phaseStartDay / totalDays) * chartWidth;
       var barWidth = ((phaseEndDay - phaseStartDay) / totalDays) * chartWidth;
       
-      if (barWidth < 20) barWidth = 20;
+      if (barWidth < 10) barWidth = 10;
       
       var barTop = rowTop + barPadding;
       
@@ -481,10 +521,30 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
         bar.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middle;
         bar.textFrame.textRange.paragraphFormat.alignment = PowerPoint.ParagraphAlignment.center;
       } catch(e) {}
+      
+      // ─── MEILENSTEIN-DREIECK am Balkenende (zeigt nach OBEN, 0°) ───
+      var triangleSize = barHeightPt;  // Höhe und Breite = Balkenhöhe
+      // Dreieck zentriert am Ende des Balkens, zeigt nach oben
+      var triangleLeft = barLeft + barWidth - (triangleSize / 2);
+      var triangleTop = barTop;
+      
+      var milestone = slide.shapes.addGeometricShape(
+        PowerPoint.GeometricShapeType.isoscelesTriangle,
+        {
+          left: Math.round(triangleLeft),
+          top: Math.round(triangleTop),
+          width: Math.round(triangleSize),
+          height: Math.round(triangleSize)
+        }
+      );
+      milestone.fill.setSolidColor("4A4A4A");  // Dunkelgrau
+      // Keine Rotation - Dreieck zeigt standardmäßig nach oben (0°)
+      
+      console.log("  Meilenstein (nach oben): left=" + Math.round(triangleLeft) + " size=" + Math.round(triangleSize));
     }
   }
 
-  // ═══ 5. HEUTE-LINIE (rot, echte Linie) - Label UNTEN ═══
+  // ═══ 5. HEUTE-LINIE (rot) - Label UNTEN ═══
   if (showTodayLine) {
     var today = new Date();
     var todayDay = daysBetween(projStart, today);
@@ -494,13 +554,13 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
     if (todayDay >= 0 && todayDay <= totalDays) {
       var todayX = chartLeft + (todayDay / totalDays) * chartWidth;
       
-      // Rote vertikale Linie (echte Linie)
+      // Rote vertikale Linie
       var todayLine = slide.shapes.addLine(
         PowerPoint.ConnectorType.straight,
         {
           left: todayX,
           top: GANTT_TOP_PT,
-          width: 0.01,  // Sehr klein für senkrechte Linie
+          width: 0.01,
           height: totalHeight
         }
       );
@@ -513,7 +573,7 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
           PowerPoint.GeometricShapeType.rectangle,
           {
             left: Math.round(todayX - 20),
-            top: Math.round(chartBottom + 2),  // Unterhalb des Charts
+            top: Math.round(chartBottom + 2),
             width: 40,
             height: 14
           }
@@ -527,9 +587,7 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
         todayLabel.textFrame.textRange.paragraphFormat.alignment = PowerPoint.ParagraphAlignment.center;
       } catch(e) { console.log("Heute-Label Fehler:", e); }
       
-      console.log("  Heute-Linie bei X=" + Math.round(todayX) + " (Label unten)");
-    } else {
-      console.log("  Heute liegt außerhalb des Projektzeitraums");
+      console.log("  Heute-Linie bei X=" + Math.round(todayX));
     }
   }
 
@@ -540,6 +598,49 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
   });
 }
 
+// Berechne Monatsgruppen für die obere Zeile - OHNE JAHRESZAHL
+function computeMonthGroups(timeUnits, unit) {
+  var groups = [];
+  var months = ["Jan","Feb","Mrz","Apr","Mai","Jun","Jul","Aug","Sep","Okt","Nov","Dez"];
+  
+  if (timeUnits.length === 0) return groups;
+  
+  var currentMonth = -1;
+  var currentYear = -1;
+  var currentCount = 0;
+  
+  for (var i = 0; i < timeUnits.length; i++) {
+    var tu = timeUnits[i];
+    var m = tu.monthIndex;
+    var y = tu.year;
+    
+    if (m === currentMonth && y === currentYear) {
+      currentCount++;
+    } else {
+      if (currentCount > 0) {
+        // NUR Monatsname, KEINE Jahreszahl
+        groups.push({
+          label: months[currentMonth],
+          count: currentCount
+        });
+      }
+      currentMonth = m;
+      currentYear = y;
+      currentCount = 1;
+    }
+  }
+  
+  // Letzte Gruppe hinzufügen
+  if (currentCount > 0) {
+    groups.push({
+      label: months[currentMonth],
+      count: currentCount
+    });
+  }
+  
+  return groups;
+}
+
 function computeTimeUnits(start, end, unit) {
   var units = [];
   var totalDays = daysBetween(start, end);
@@ -548,8 +649,10 @@ function computeTimeUnits(start, end, unit) {
     for (var i = 0; i < totalDays && i < 60; i++) {
       var d = addDays(start, i);
       units.push({
-        label: pad2(d.getDate()) + "." + pad2(d.getMonth() + 1),
-        days: 1
+        label: pad2(d.getDate()),
+        days: 1,
+        monthIndex: d.getMonth(),
+        year: d.getFullYear()
       });
     }
   } 
@@ -560,10 +663,11 @@ function computeTimeUnits(start, end, unit) {
       if (weekEnd > end) weekEnd = new Date(end);
       var days = daysBetween(cur, weekEnd);
       if (days > 0) {
-        // NUR Wochennummer ohne "KW"
         units.push({
           label: String(getWeekNumber(cur)),
-          days: days
+          days: days,
+          monthIndex: cur.getMonth(),
+          year: cur.getFullYear()
         });
       }
       cur = weekEnd;
@@ -580,7 +684,9 @@ function computeTimeUnits(start, end, unit) {
       if (days > 0) {
         units.push({
           label: months[cur.getMonth()],
-          days: days
+          days: days,
+          monthIndex: cur.getMonth(),
+          year: cur.getFullYear()
         });
       }
       cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
@@ -596,8 +702,10 @@ function computeTimeUnits(start, end, unit) {
       var q = Math.floor(cur.getMonth() / 3) + 1;
       if (days > 0) {
         units.push({
-          label: "Q" + q + "/" + String(cur.getFullYear()).slice(-2),
-          days: days
+          label: "Q" + q,
+          days: days,
+          monthIndex: cur.getMonth(),
+          year: cur.getFullYear()
         });
       }
       cur = new Date(cur.getFullYear(), cur.getMonth() + 3, 1);
