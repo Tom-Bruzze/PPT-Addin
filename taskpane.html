@@ -8,7 +8,6 @@
   <script src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
 </head>
 <body>
-  <!-- ═══ HEADER ═══ -->
   <header class="header">
     <div class="logo">
       <svg viewBox="0 0 40 40" width="32" height="32">
@@ -24,15 +23,12 @@
     </div>
     <div class="info-bar">
       <span id="infoDateTime">--</span>
-      <span id="infoVersion">v2.6</span>
-      <span id="infoApi">API 1.10</span>
+      <span id="infoVersion">v2.7</span>
+      <span id="infoApi">API 1.1</span>
     </div>
   </header>
 
-  <!-- ═══ MAIN ═══ -->
   <main class="main">
-    
-    <!-- Rastereinheit -->
     <section class="card">
       <h2>Rastereinheit (RE)</h2>
       <div class="re-row">
@@ -47,14 +43,12 @@
       </div>
     </section>
 
-    <!-- Folienformat -->
     <section class="card">
       <h2>Folienformat</h2>
       <p class="hint">Setzt das Format auf 27,728 × 19,297 cm</p>
       <button id="setSlide" class="btn primary full">Format setzen</button>
     </section>
 
-    <!-- GANTT Einstellungen -->
     <section class="card gantt-card">
       <h2>GANTT-Diagramm</h2>
       
@@ -98,10 +92,8 @@
 
       <button id="createGantt" class="btn accent full">GANTT erstellen</button>
     </section>
-
   </main>
 
-  <!-- ═══ FOOTER ═══ -->
   <footer class="footer">
     <div id="status" class="sts info">Bereit</div>
   </footer>
