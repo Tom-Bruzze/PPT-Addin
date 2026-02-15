@@ -23,7 +23,7 @@
     </div>
     <div class="info-bar">
       <span id="infoDateTime">--</span>
-      <span id="infoVersion">v2.8</span>
+      <span id="infoVersion">v2.9</span>
       <span id="infoApi">API 1.1</span>
     </div>
   </header>
@@ -82,10 +82,23 @@
         </div>
       </div>
 
-      <div class="form-row">
-        <label>Balkenhöhe (RE)</label>
-        <input type="number" id="ganttBarH" value="3" min="1" max="20">
-        <span class="hint-inline">Höhe der GANTT-Balken in Rastereinheiten</span>
+      <div class="form-row inline">
+        <div>
+          <label>Zeilenhöhe (RE)</label>
+          <input type="number" id="ganttRowH" value="5" min="2" max="20">
+        </div>
+        <div>
+          <label>Balkenhöhe (RE)</label>
+          <input type="number" id="ganttBarH" value="3" min="1" max="20">
+        </div>
+      </div>
+
+      <div class="form-row checkbox-row">
+        <label class="checkbox-label">
+          <input type="checkbox" id="ganttTodayLine" checked>
+          <span class="checkmark"></span>
+          <span class="checkbox-text">"Heute"-Linie anzeigen <span class="today-indicator">(rot)</span></span>
+        </label>
       </div>
 
       <div class="phases-header">

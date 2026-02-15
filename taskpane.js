@@ -1,19 +1,17 @@
 /*
  ═══════════════════════════════════════════════════════
- Droege GANTT Generator  –  taskpane.js  v2.8
+ Droege GANTT Generator  –  taskpane.js  v2.9
 
- FIXES v2.8:
-  - GANTT wird auf AKTUELLER Folie erstellt (nicht erste)
-  - Balken sind echte Rechtecke (kein RoundedRectangle)
-  - Textfarbe der Balken: SCHWARZ
-  - Balkenhöhe in RE frei definierbar
-  - Rastereinheiten: 0,21 / 0,42 / 0,63 / 2,10
+ NEU in v2.9:
+  - Vertikale Trennlinien zwischen Zeiteinheiten (grau)
+  - Phasenhöhe (Label) einstellbar in RE
+  - "Heute"-Linie in Rot (optional)
 
  DROEGE GROUP · 2026
  ═══════════════════════════════════════════════════════
 */
 
-var VERSION = "2.8";
+var VERSION = "2.9";
 var CM = 28.3465;
 var gridUnitCm = 0.21;
 var ganttPhaseCount = 0;
@@ -22,7 +20,6 @@ var ganttPhaseCount = 0;
 var GANTT_LEFT_PT = 48;
 var GANTT_TOP_PT = 100;
 var GANTT_WIDTH_PT = 700;
-var GANTT_HEIGHT_PT = 400;
 
 Office.onReady(function(info) {
   if (info.host === Office.HostType.PowerPoint) {
@@ -216,7 +213,7 @@ function setSlideSize() {
 // ═══════════════════════════════════════════
 
 function createGanttChart() {
-  console.log("=== createGanttChart START v2.8 ===");
+  console.log("=== createGanttChart START v2.9 ===");
   
   // Eingaben lesen
   var projStart = new Date(document.getElementById("ganttStart").value);
@@ -225,6 +222,8 @@ function createGanttChart() {
   var labelWidthRE = parseInt(document.getElementById("ganttLabelW").value) || 20;
   var headerHeightRE = parseInt(document.getElementById("ganttHeaderH").value) || 3;
   var barHeightRE = parseInt(document.getElementById("ganttBarH").value) || 3;
+  var rowHeightRE = parseInt(document.getElementById("ganttRowH").value) || 5;
+  var showTodayLine = document.getElementById("ganttTodayLine").checked;
 
   // Validierung
   if (isNaN(projStart.getTime()) || isNaN(projEnd.getTime())) {
@@ -262,11 +261,10 @@ function createGanttChart() {
 
   showStatus("Erstelle GANTT auf aktueller Folie...", "info");
 
-  // GANTT zeichnen - AUF AKTUELLER FOLIE
+  // GANTT zeichnen
   PowerPoint.run(function(ctx) {
     console.log("PowerPoint.run gestartet");
     
-    // WICHTIG: getSelectedSlides() für aktuelle Folie
     var selectedSlides = ctx.presentation.getSelectedSlides();
     selectedSlides.load("items");
     
@@ -274,12 +272,9 @@ function createGanttChart() {
       var slide;
       
       if (selectedSlides.items && selectedSlides.items.length > 0) {
-        // Aktuelle/ausgewählte Folie verwenden
         slide = selectedSlides.items[0];
         console.log("Verwende ausgewählte Folie");
       } else {
-        // Fallback: Alle Folien laden und erste nehmen
-        console.log("Keine Folie ausgewählt, lade alle Folien...");
         var allSlides = ctx.presentation.slides;
         allSlides.load("items");
         return ctx.sync().then(function() {
@@ -287,12 +282,12 @@ function createGanttChart() {
             throw new Error("Keine Folie vorhanden");
           }
           return drawGanttOnSlide(ctx, allSlides.items[0], projStart, projEnd, totalDays, 
-                                   timeUnits, phases, labelWidthRE, headerHeightRE, barHeightRE);
+                                   timeUnits, phases, labelWidthRE, headerHeightRE, barHeightRE, rowHeightRE, showTodayLine);
         });
       }
       
       return drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, 
-                               timeUnits, phases, labelWidthRE, headerHeightRE, barHeightRE);
+                               timeUnits, phases, labelWidthRE, headerHeightRE, barHeightRE, rowHeightRE, showTodayLine);
     });
     
   }).catch(function(err) {
@@ -301,35 +296,36 @@ function createGanttChart() {
   });
 }
 
-function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, phases, labelWidthRE, headerHeightRE, barHeightRE) {
+function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, phases, labelWidthRE, headerHeightRE, barHeightRE, rowHeightRE, showTodayLine) {
   console.log("drawGanttOnSlide gestartet");
   
   // Layout berechnen in Points
   var labelWidthPt = re2pt(labelWidthRE);
   var headerHeightPt = re2pt(headerHeightRE);
   var barHeightPt = re2pt(barHeightRE);
+  var rowHeightPt = re2pt(rowHeightRE);
+  
+  // Balken-Padding (zentriert in Zeile)
+  var barPadding = Math.max(2, Math.round((rowHeightPt - barHeightPt) / 2));
   
   var chartLeft = GANTT_LEFT_PT + labelWidthPt;
   var chartWidth = GANTT_WIDTH_PT - labelWidthPt;
   var chartTop = GANTT_TOP_PT + headerHeightPt;
   
-  // Zeilenhöhe = Balkenhöhe + Padding
-  var rowPadding = Math.max(4, Math.round(barHeightPt * 0.3));
-  var rowHeight = barHeightPt + (2 * rowPadding);
+  // Gesamthöhe berechnen
+  var totalHeight = headerHeightPt + (phases.length * rowHeightPt);
   
   console.log("Layout:", {
     labelWidthPt: labelWidthPt,
     headerHeightPt: headerHeightPt,
     barHeightPt: barHeightPt,
-    rowHeight: rowHeight,
+    rowHeightPt: rowHeightPt,
     chartLeft: chartLeft,
-    chartWidth: chartWidth
+    chartWidth: chartWidth,
+    totalHeight: totalHeight
   });
 
-  // Gesamthöhe berechnen
-  var totalHeight = headerHeightPt + (phases.length * rowHeight);
-
-  // ═══ 1. HINTERGRUND (weißes Rechteck) ═══
+  // ═══ 1. HINTERGRUND ═══
   console.log("1. Hintergrund");
   var bg = slide.shapes.addGeometricShape(
     PowerPoint.GeometricShapeType.rectangle,
@@ -342,13 +338,16 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
   );
   bg.fill.setSolidColor("FFFFFF");
   
-  // ═══ 2. HEADER-ZELLEN ═══
-  console.log("2. Header-Zellen: " + timeUnits.length);
+  // ═══ 2. HEADER-ZELLEN UND TRENNLINIEN ═══
+  console.log("2. Header-Zellen und Trennlinien: " + timeUnits.length);
   var colX = 0;
+  var linePositions = []; // Speichere Positionen für Trennlinien
+  
   for (var c = 0; c < timeUnits.length; c++) {
     var colWidth = Math.round((timeUnits[c].days / totalDays) * chartWidth);
     if (colWidth < 10) colWidth = 10;
     
+    // Header-Zelle
     var hdr = slide.shapes.addGeometricShape(
       PowerPoint.GeometricShapeType.rectangle,
       {
@@ -365,17 +364,42 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
       hdr.textFrame.textRange.font.size = 7;
       hdr.textFrame.textRange.font.bold = true;
       hdr.textFrame.textRange.font.color = "000000";
-    } catch(e) { console.log("Header-Text Fehler:", e); }
+    } catch(e) {}
+    
+    // Position für Trennlinie speichern (außer nach letzter Spalte)
+    if (c < timeUnits.length - 1) {
+      linePositions.push(chartLeft + colX + colWidth);
+    }
     
     colX += colWidth;
   }
+  
+  // ═══ 3. VERTIKALE TRENNLINIEN (grau, offen nach unten) ═══
+  console.log("3. Vertikale Trennlinien: " + linePositions.length);
+  var chartBottom = GANTT_TOP_PT + totalHeight;
+  
+  for (var i = 0; i < linePositions.length; i++) {
+    var lineX = linePositions[i];
+    
+    // Linie als sehr schmales Rechteck (1pt breit)
+    var line = slide.shapes.addGeometricShape(
+      PowerPoint.GeometricShapeType.rectangle,
+      {
+        left: Math.round(lineX),
+        top: Math.round(chartTop),  // Startet unter Header
+        width: 1,
+        height: Math.round(chartBottom - chartTop)  // Bis zum Ende des Charts
+      }
+    );
+    line.fill.setSolidColor("CCCCCC");  // Grau
+  }
 
-  // ═══ 3. PHASEN-ZEILEN UND BALKEN ═══
-  console.log("3. Phasen: " + phases.length);
+  // ═══ 4. PHASEN-ZEILEN UND BALKEN ═══
+  console.log("4. Phasen: " + phases.length);
   
   for (var p = 0; p < phases.length; p++) {
     var phase = phases[p];
-    var rowTop = chartTop + (p * rowHeight);
+    var rowTop = chartTop + (p * rowHeightPt);
     
     console.log("Phase " + p + ": " + phase.name + " | rowTop=" + rowTop);
     
@@ -386,7 +410,7 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
         left: Math.round(GANTT_LEFT_PT),
         top: Math.round(rowTop),
         width: Math.round(labelWidthPt),
-        height: Math.round(rowHeight)
+        height: Math.round(rowHeightPt)
       }
     );
     label.fill.setSolidColor("F0F0F0");
@@ -397,32 +421,28 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
       label.textFrame.textRange.font.bold = true;
       label.textFrame.textRange.font.color = "000000";
       label.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middle;
-    } catch(e) { console.log("Label-Text Fehler:", e); }
+    } catch(e) {}
 
     // ─── Balken berechnen ───
     var phaseStartDay = daysBetween(projStart, phase.start);
     var phaseEndDay = daysBetween(projStart, phase.end);
     
-    // Clamp to project range
     if (phaseStartDay < 0) phaseStartDay = 0;
     if (phaseEndDay > totalDays) phaseEndDay = totalDays;
     
-    console.log("  Tage: " + phaseStartDay + " - " + phaseEndDay + " (von " + totalDays + ")");
+    console.log("  Tage: " + phaseStartDay + " - " + phaseEndDay);
     
     if (phaseEndDay > phaseStartDay) {
       var barLeft = chartLeft + (phaseStartDay / totalDays) * chartWidth;
       var barWidth = ((phaseEndDay - phaseStartDay) / totalDays) * chartWidth;
       
-      // Mindestbreite
       if (barWidth < 20) barWidth = 20;
       
-      // Balken-Position (zentriert in Zeile)
-      var barTop = rowTop + rowPadding;
+      var barTop = rowTop + barPadding;
       
       console.log("  Balken: left=" + Math.round(barLeft) + " top=" + Math.round(barTop) + 
                   " w=" + Math.round(barWidth) + " h=" + barHeightPt);
       
-      // ─── BALKEN als RECTANGLE (nicht RoundedRectangle!) ───
       var bar = slide.shapes.addGeometricShape(
         PowerPoint.GeometricShapeType.rectangle,
         {
@@ -436,21 +456,64 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
       var colorHex = phase.color.replace("#", "");
       bar.fill.setSolidColor(colorHex);
       
-      // Text auf Balken - SCHWARZ
       try {
         bar.textFrame.textRange.text = phase.name;
         bar.textFrame.textRange.font.size = 7;
-        bar.textFrame.textRange.font.color = "000000";  // SCHWARZ
+        bar.textFrame.textRange.font.color = "000000";
         bar.textFrame.textRange.font.bold = true;
         bar.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middle;
         bar.textFrame.textRange.paragraphFormat.alignment = PowerPoint.ParagraphAlignment.center;
-      } catch(e) { console.log("Balken-Text Fehler:", e); }
-    } else {
-      console.log("  KEIN BALKEN (Start >= End)");
+      } catch(e) {}
     }
   }
 
-  console.log("4. Sync...");
+  // ═══ 5. HEUTE-LINIE (rot) ═══
+  if (showTodayLine) {
+    var today = new Date();
+    var todayDay = daysBetween(projStart, today);
+    
+    console.log("5. Heute-Linie: Tag " + todayDay + " von " + totalDays);
+    
+    if (todayDay >= 0 && todayDay <= totalDays) {
+      var todayX = chartLeft + (todayDay / totalDays) * chartWidth;
+      
+      // Rote vertikale Linie
+      var todayLine = slide.shapes.addGeometricShape(
+        PowerPoint.GeometricShapeType.rectangle,
+        {
+          left: Math.round(todayX),
+          top: Math.round(GANTT_TOP_PT),  // Startet oben am Header
+          width: 2,  // 2pt breit für bessere Sichtbarkeit
+          height: Math.round(totalHeight)  // Über gesamte Höhe
+        }
+      );
+      todayLine.fill.setSolidColor("FF0000");  // Rot
+      
+      // Optional: "Heute" Label oben
+      try {
+        var todayLabel = slide.shapes.addGeometricShape(
+          PowerPoint.GeometricShapeType.rectangle,
+          {
+            left: Math.round(todayX - 15),
+            top: Math.round(GANTT_TOP_PT - 12),
+            width: 32,
+            height: 12
+          }
+        );
+        todayLabel.fill.setSolidColor("FF0000");
+        todayLabel.textFrame.textRange.text = "Heute";
+        todayLabel.textFrame.textRange.font.size = 6;
+        todayLabel.textFrame.textRange.font.color = "FFFFFF";
+        todayLabel.textFrame.textRange.font.bold = true;
+      } catch(e) { console.log("Heute-Label Fehler:", e); }
+      
+      console.log("  Heute-Linie bei X=" + Math.round(todayX));
+    } else {
+      console.log("  Heute liegt außerhalb des Projektzeitraums");
+    }
+  }
+
+  console.log("6. Sync...");
   return ctx.sync().then(function() {
     console.log("=== FERTIG ===");
     showStatus("GANTT erstellt (" + phases.length + " Phasen) ✓", "success");
