@@ -5,9 +5,11 @@
  UPDATES v2.14 (basierend auf v2.11):
   - Meilenstein-Dreieck ENTFERNT
   - Feste Positionierung: Links=9 RE, Oben=17 RE
-  - Max. Breite: 118 RE
-  - Zwei Spaltenbreiten-Modi: Fest oder Auto-Verteilung
-  - Abschneiden am Ende bei Überschreitung der Max. Breite
+  - Max. Breite: 118 RE (Gesamtbreite inkl. Label-Spalte)
+  - Zwei Spaltenbreiten-Modi:
+    1. Fest: Manuell wählbare Spaltenbreite in RE
+    2. Auto: Berechnet größtmögliche ganze RE-Breite pro Spalte
+       innerhalb der verfügbaren 118 RE
 
  DROEGE GROUP · 2026
  ═══════════════════════════════════════════════════════
@@ -19,9 +21,9 @@ var gridUnitCm = 0.21;
 var ganttPhaseCount = 0;
 
 // GANTT Layout - FEST in Rastereinheiten
-var GANTT_LEFT_RE = 9;      // Links: 9 RE
-var GANTT_TOP_RE = 17;      // Oben: 17 RE
-var GANTT_MAX_WIDTH_RE = 118;  // Max. Breite: 118 RE
+var GANTT_LEFT_RE = 9;         // Links: 9 RE
+var GANTT_TOP_RE = 17;         // Oben: 17 RE
+var GANTT_MAX_WIDTH_RE = 118;  // Max. Gesamtbreite: 118 RE
 
 // Schriftgröße für alle Texte
 var FONT_SIZE = 11;
@@ -71,7 +73,6 @@ function initUI() {
   var widthMode = document.getElementById("ganttWidthMode");
   if (widthMode) {
     widthMode.addEventListener("change", function() {
-      var colWidthInput = document.getElementById("ganttColW");
       var colWidthDiv = document.getElementById("colWidthDiv");
       if (this.value === "auto") {
         colWidthDiv.style.display = "none";
@@ -263,24 +264,59 @@ function createGanttChart() {
   var totalDays = daysBetween(projStart, projEnd);
   if (totalDays < 1) totalDays = 1;
 
-  // ═══ SPALTENBREITE BERECHNEN ═══
-  // Verfügbare Breite für Chart (ohne Label-Spalte)
-  var availableWidthRE = GANTT_MAX_WIDTH_RE - labelWidthRE;
+  // ═══════════════════════════════════════════════════════════
+  // SPALTENBREITE BERECHNEN
+  // ═══════════════════════════════════════════════════════════
+  
+  // Verfügbare Breite für den Chart-Bereich (ohne Label-Spalte)
+  var chartAreaWidthRE = GANTT_MAX_WIDTH_RE - labelWidthRE;
+  
+  var visibleColumns = timeUnits.length;
+  var truncated = false;
   
   if (widthMode === "auto") {
-    // Auto-Verteilung: Berechne optimale Spaltenbreite (auf ganze RE gerundet)
-    colWidthRE = Math.floor(availableWidthRE / timeUnits.length);
-    if (colWidthRE < 1) colWidthRE = 1;
-    if (colWidthRE > 10) colWidthRE = 10;  // Max. 10 RE pro Spalte
-    console.log("Auto-Modus: Spaltenbreite = " + colWidthRE + " RE");
+    // ═══ AUTO-MODUS ═══
+    // Berechne die größtmögliche GANZE Rastereinheit pro Spalte,
+    // sodass alle Spalten in die verfügbare Breite passen
+    
+    colWidthRE = Math.floor(chartAreaWidthRE / timeUnits.length);
+    
+    // Minimum 1 RE, Maximum 10 RE
+    if (colWidthRE < 1) {
+      colWidthRE = 1;
+      // Bei 1 RE: Berechne wie viele Spalten passen
+      visibleColumns = Math.floor(chartAreaWidthRE / 1);
+      truncated = visibleColumns < timeUnits.length;
+    }
+    if (colWidthRE > 10) {
+      colWidthRE = 10;
+    }
+    
+    console.log("Auto-Modus: " + timeUnits.length + " Zeiteinheiten");
+    console.log("Verfügbare Breite: " + chartAreaWidthRE + " RE");
+    console.log("Berechnete Spaltenbreite: " + colWidthRE + " RE");
+    
+  } else {
+    // ═══ FESTER MODUS ═══
+    // Prüfen ob alle Spalten mit der festen Breite passen
+    var requiredWidth = timeUnits.length * colWidthRE;
+    
+    if (requiredWidth > chartAreaWidthRE) {
+      // Abschneiden: Berechne wie viele Spalten passen
+      visibleColumns = Math.floor(chartAreaWidthRE / colWidthRE);
+      truncated = true;
+    }
+    
+    console.log("Fester Modus: " + colWidthRE + " RE pro Spalte");
+    console.log("Benötigte Breite: " + requiredWidth + " RE");
+    console.log("Verfügbare Breite: " + chartAreaWidthRE + " RE");
   }
   
-  // Berechne wie viele Spalten sichtbar sind
-  var maxVisibleColumns = Math.floor(availableWidthRE / colWidthRE);
-  var visibleColumns = Math.min(timeUnits.length, maxVisibleColumns);
-  var truncated = visibleColumns < timeUnits.length;
+  // Tatsächlich genutzte Chart-Breite (in ganzen RE)
+  var actualChartWidthRE = visibleColumns * colWidthRE;
   
   console.log("Sichtbare Spalten: " + visibleColumns + " von " + timeUnits.length);
+  console.log("Tatsächliche Chart-Breite: " + actualChartWidthRE + " RE");
 
   // Info anzeigen
   var unitNames = {day:"Tage", week:"Wochen", month:"Monate", quarter:"Quartale"};
@@ -289,9 +325,14 @@ function createGanttChart() {
     infoText += " <span style='color:#e94560'>(von " + timeUnits.length + " – abgeschnitten)</span>";
   }
   infoText += "<br>Spaltenbreite: <b>" + colWidthRE + " RE</b>";
+  infoText += " | Chart-Breite: <b>" + actualChartWidthRE + " RE</b>";
+  infoText += " | Gesamt: <b>" + (labelWidthRE + actualChartWidthRE) + " RE</b>";
   ganttInfo(infoText, false);
 
   showStatus("Erstelle GANTT auf aktueller Folie...", "info");
+
+  // Sichtbare Zeiteinheiten (abgeschnitten falls nötig)
+  var visibleTimeUnits = timeUnits.slice(0, visibleColumns);
 
   // GANTT zeichnen
   PowerPoint.run(function(ctx) {
@@ -313,18 +354,18 @@ function createGanttChart() {
           if (allSlides.items.length > 0) {
             slide = allSlides.items[0];
           }
-          return drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits.slice(0, visibleColumns), 
+          return drawGantt(ctx, slide, projStart, projEnd, unit, phases, visibleTimeUnits, 
                           labelWidthRE, headerHeightRE, barHeightRE, rowHeightRE, 
-                          colWidthRE, totalDays, showTodayLine, visibleColumns, truncated);
+                          colWidthRE, totalDays, showTodayLine, actualChartWidthRE);
         });
       }
       
-      return drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits.slice(0, visibleColumns), 
+      return drawGantt(ctx, slide, projStart, projEnd, unit, phases, visibleTimeUnits, 
                       labelWidthRE, headerHeightRE, barHeightRE, rowHeightRE, 
-                      colWidthRE, totalDays, showTodayLine, visibleColumns, truncated);
+                      colWidthRE, totalDays, showTodayLine, actualChartWidthRE);
     });
   }).then(function() {
-    var msg = "GANTT erstellt! " + visibleColumns + " Spalten à " + colWidthRE + " RE";
+    var msg = "GANTT erstellt! " + visibleColumns + " Spalten à " + colWidthRE + " RE = " + actualChartWidthRE + " RE";
     if (truncated) msg += " (abgeschnitten)";
     showStatus(msg, "success");
   }).catch(function(err) {
@@ -335,9 +376,9 @@ function createGanttChart() {
 
 function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits, 
                    labelWidthRE, headerHeightRE, barHeightRE, rowHeightRE, 
-                   colWidthRE, totalDays, showTodayLine, visibleColumns, truncated) {
+                   colWidthRE, totalDays, showTodayLine, actualChartWidthRE) {
   
-  // ═══ FESTE POSITIONIERUNG ═══
+  // ═══ FESTE POSITIONIERUNG IN RE → POINTS ═══
   var GANTT_LEFT_PT = re2pt(GANTT_LEFT_RE);
   var GANTT_TOP_PT = re2pt(GANTT_TOP_RE);
   
@@ -348,14 +389,14 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
   var rowHeightPt = re2pt(rowHeightRE);
   var colWidthPt = re2pt(colWidthRE);
   
+  // Chart-Breite basiert auf tatsächlicher Breite in RE
+  var chartWidthPt = re2pt(actualChartWidthRE);
+  
   // Balken-Padding (zentriert in Zeile)
   var barPadding = Math.max(2, Math.round((rowHeightPt - barHeightPt) / 2));
   
   var chartLeft = GANTT_LEFT_PT + labelWidthPt;
-  
-  // Chart-Breite basiert auf sichtbaren Spalten
-  var chartWidth = visibleColumns * colWidthPt;
-  var totalWidth = labelWidthPt + chartWidth;
+  var totalWidth = labelWidthPt + chartWidthPt;
   
   // Prüfen ob Monatszeile benötigt wird (bei Tage, Wochen, Quartale)
   var needsMonthRow = (unit === "day" || unit === "week" || unit === "quarter");
@@ -376,16 +417,11 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
     GANTT_LEFT_PT: GANTT_LEFT_PT,
     GANTT_TOP_PT: GANTT_TOP_PT,
     labelWidthPt: labelWidthPt,
-    headerHeightPt: headerHeightPt,
-    monthRowHeightPt: monthRowHeightPt,
-    barHeightPt: barHeightPt,
-    rowHeightPt: rowHeightPt,
     colWidthPt: colWidthPt,
-    chartLeft: chartLeft,
-    chartWidth: chartWidth,
-    totalHeight: totalHeight,
-    needsMonthRow: needsMonthRow,
-    visibleColumns: visibleColumns
+    colWidthRE: colWidthRE,
+    chartWidthPt: chartWidthPt,
+    actualChartWidthRE: actualChartWidthRE,
+    visibleColumns: timeUnits.length
   });
 
   // ═══ 1. HINTERGRUND ═══
@@ -409,14 +445,14 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
     
     for (var m = 0; m < monthGroups.length; m++) {
       var mg = monthGroups[m];
-      var monthWidth = mg.count * colWidthPt;
+      var monthWidthPt = mg.count * colWidthPt;
       
       var monthCell = slide.shapes.addGeometricShape(
         PowerPoint.GeometricShapeType.rectangle,
         {
           left: Math.round(chartLeft + monthX),
           top: Math.round(GANTT_TOP_PT),
-          width: Math.round(monthWidth),
+          width: Math.round(monthWidthPt),
           height: Math.round(monthRowHeightPt)
         }
       );
@@ -431,7 +467,7 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
         monthCell.textFrame.textRange.paragraphFormat.alignment = PowerPoint.ParagraphAlignment.center;
       } catch(e) {}
       
-      monthX += monthWidth;
+      monthX += monthWidthPt;
     }
   }
   
@@ -442,7 +478,7 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
   var headerTop = GANTT_TOP_PT + monthRowHeightPt;
   
   for (var c = 0; c < timeUnits.length; c++) {
-    // Header-Zelle mit fester Breite
+    // Header-Zelle mit fester Breite in RE
     var hdr = slide.shapes.addGeometricShape(
       PowerPoint.GeometricShapeType.rectangle,
       {
@@ -526,11 +562,11 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
     
     if (phaseEndDay > phaseStartDay) {
       // Berechne Position basierend auf fester Spaltenbreite
-      var barLeft = chartLeft + (phaseStartDay / totalDays) * chartWidth;
-      var barWidth = ((phaseEndDay - phaseStartDay) / totalDays) * chartWidth;
+      var barLeft = chartLeft + (phaseStartDay / totalDays) * chartWidthPt;
+      var barWidth = ((phaseEndDay - phaseStartDay) / totalDays) * chartWidthPt;
       
       // Begrenzen auf sichtbaren Bereich
-      var maxRight = chartLeft + chartWidth;
+      var maxRight = chartLeft + chartWidthPt;
       if (barLeft + barWidth > maxRight) {
         barWidth = maxRight - barLeft;
       }
@@ -577,10 +613,10 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
     console.log("5. Heute-Linie: Tag " + todayDay + " von " + totalDays);
     
     if (todayDay >= 0 && todayDay <= totalDays) {
-      var todayX = chartLeft + (todayDay / totalDays) * chartWidth;
+      var todayX = chartLeft + (todayDay / totalDays) * chartWidthPt;
       
       // Prüfen ob im sichtbaren Bereich
-      if (todayX <= chartLeft + chartWidth) {
+      if (todayX <= chartLeft + chartWidthPt) {
         // Rote vertikale Linie
         var todayLine = slide.shapes.addLine(
           PowerPoint.ConnectorType.straight,
