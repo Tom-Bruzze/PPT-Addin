@@ -1,17 +1,18 @@
 /*
  ═══════════════════════════════════════════════════════
- Droege GANTT Generator  –  taskpane.js  v2.9
+ Droege GANTT Generator  –  taskpane.js  v2.10
 
- NEU in v2.9:
-  - Vertikale Trennlinien zwischen Zeiteinheiten (grau)
-  - Phasenhöhe (Label) einstellbar in RE
-  - "Heute"-Linie in Rot (optional)
+ UPDATES v2.10:
+  - Schriftgröße 11pt für alle Texte
+  - Kalenderwochen nur Nummer (ohne "KW")
+  - Heute-Label unten statt oben
+  - Echte Linien für vertikale Trennlinien
 
  DROEGE GROUP · 2026
  ═══════════════════════════════════════════════════════
 */
 
-var VERSION = "2.9";
+var VERSION = "2.10";
 var CM = 28.3465;
 var gridUnitCm = 0.21;
 var ganttPhaseCount = 0;
@@ -20,6 +21,9 @@ var ganttPhaseCount = 0;
 var GANTT_LEFT_PT = 48;
 var GANTT_TOP_PT = 100;
 var GANTT_WIDTH_PT = 700;
+
+// Schriftgröße für alle Texte
+var FONT_SIZE = 11;
 
 Office.onReady(function(info) {
   if (info.host === Office.HostType.PowerPoint) {
@@ -213,7 +217,7 @@ function setSlideSize() {
 // ═══════════════════════════════════════════
 
 function createGanttChart() {
-  console.log("=== createGanttChart START v2.9 ===");
+  console.log("=== createGanttChart START v2.10 ===");
   
   // Eingaben lesen
   var projStart = new Date(document.getElementById("ganttStart").value);
@@ -314,6 +318,7 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
   
   // Gesamthöhe berechnen
   var totalHeight = headerHeightPt + (phases.length * rowHeightPt);
+  var chartBottom = GANTT_TOP_PT + totalHeight;
   
   console.log("Layout:", {
     labelWidthPt: labelWidthPt,
@@ -338,8 +343,8 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
   );
   bg.fill.setSolidColor("FFFFFF");
   
-  // ═══ 2. HEADER-ZELLEN UND TRENNLINIEN ═══
-  console.log("2. Header-Zellen und Trennlinien: " + timeUnits.length);
+  // ═══ 2. HEADER-ZELLEN ═══
+  console.log("2. Header-Zellen: " + timeUnits.length);
   var colX = 0;
   var linePositions = []; // Speichere Positionen für Trennlinien
   
@@ -361,9 +366,11 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
     
     try {
       hdr.textFrame.textRange.text = timeUnits[c].label;
-      hdr.textFrame.textRange.font.size = 7;
+      hdr.textFrame.textRange.font.size = FONT_SIZE;
       hdr.textFrame.textRange.font.bold = true;
       hdr.textFrame.textRange.font.color = "000000";
+      hdr.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middle;
+      hdr.textFrame.textRange.paragraphFormat.alignment = PowerPoint.ParagraphAlignment.center;
     } catch(e) {}
     
     // Position für Trennlinie speichern (außer nach letzter Spalte)
@@ -374,24 +381,26 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
     colX += colWidth;
   }
   
-  // ═══ 3. VERTIKALE TRENNLINIEN (grau, offen nach unten) ═══
-  console.log("3. Vertikale Trennlinien: " + linePositions.length);
-  var chartBottom = GANTT_TOP_PT + totalHeight;
+  // ═══ 3. VERTIKALE TRENNLINIEN (echte Linien) ═══
+  console.log("3. Vertikale Trennlinien (echte Linien): " + linePositions.length);
   
   for (var i = 0; i < linePositions.length; i++) {
     var lineX = linePositions[i];
     
-    // Linie als sehr schmales Rechteck (1pt breit)
-    var line = slide.shapes.addGeometricShape(
-      PowerPoint.GeometricShapeType.rectangle,
+    // Echte Linie mit addLine()
+    var line = slide.shapes.addLine(
+      PowerPoint.ConnectorType.straight,
       {
         left: Math.round(lineX),
-        top: Math.round(chartTop),  // Startet unter Header
-        width: 1,
-        height: Math.round(chartBottom - chartTop)  // Bis zum Ende des Charts
+        top: Math.round(chartTop),
+        width: 0,  // Vertikale Linie hat Breite 0
+        height: Math.round(chartBottom - chartTop)
       }
     );
-    line.fill.setSolidColor("CCCCCC");  // Grau
+    
+    // Linienfarbe auf grau setzen
+    line.lineFormat.color = "CCCCCC";
+    line.lineFormat.weight = 1;
   }
 
   // ═══ 4. PHASEN-ZEILEN UND BALKEN ═══
@@ -417,7 +426,7 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
     
     try {
       label.textFrame.textRange.text = " " + phase.name;
-      label.textFrame.textRange.font.size = 8;
+      label.textFrame.textRange.font.size = FONT_SIZE;
       label.textFrame.textRange.font.bold = true;
       label.textFrame.textRange.font.color = "000000";
       label.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middle;
@@ -458,7 +467,7 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
       
       try {
         bar.textFrame.textRange.text = phase.name;
-        bar.textFrame.textRange.font.size = 7;
+        bar.textFrame.textRange.font.size = FONT_SIZE;
         bar.textFrame.textRange.font.color = "000000";
         bar.textFrame.textRange.font.bold = true;
         bar.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middle;
@@ -467,7 +476,7 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
     }
   }
 
-  // ═══ 5. HEUTE-LINIE (rot) ═══
+  // ═══ 5. HEUTE-LINIE (rot) - Label UNTEN ═══
   if (showTodayLine) {
     var today = new Date();
     var todayDay = daysBetween(projStart, today);
@@ -477,37 +486,40 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
     if (todayDay >= 0 && todayDay <= totalDays) {
       var todayX = chartLeft + (todayDay / totalDays) * chartWidth;
       
-      // Rote vertikale Linie
-      var todayLine = slide.shapes.addGeometricShape(
-        PowerPoint.GeometricShapeType.rectangle,
+      // Rote vertikale Linie (echte Linie)
+      var todayLine = slide.shapes.addLine(
+        PowerPoint.ConnectorType.straight,
         {
           left: Math.round(todayX),
-          top: Math.round(GANTT_TOP_PT),  // Startet oben am Header
-          width: 2,  // 2pt breit für bessere Sichtbarkeit
-          height: Math.round(totalHeight)  // Über gesamte Höhe
+          top: Math.round(GANTT_TOP_PT),
+          width: 0,
+          height: Math.round(totalHeight)
         }
       );
-      todayLine.fill.setSolidColor("FF0000");  // Rot
+      todayLine.lineFormat.color = "FF0000";
+      todayLine.lineFormat.weight = 2;
       
-      // Optional: "Heute" Label oben
+      // "Heute" Label UNTEN
       try {
         var todayLabel = slide.shapes.addGeometricShape(
           PowerPoint.GeometricShapeType.rectangle,
           {
-            left: Math.round(todayX - 15),
-            top: Math.round(GANTT_TOP_PT - 12),
-            width: 32,
-            height: 12
+            left: Math.round(todayX - 20),
+            top: Math.round(chartBottom + 2),  // Unterhalb des Charts
+            width: 40,
+            height: 14
           }
         );
         todayLabel.fill.setSolidColor("FF0000");
         todayLabel.textFrame.textRange.text = "Heute";
-        todayLabel.textFrame.textRange.font.size = 6;
+        todayLabel.textFrame.textRange.font.size = 8;
         todayLabel.textFrame.textRange.font.color = "FFFFFF";
         todayLabel.textFrame.textRange.font.bold = true;
+        todayLabel.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middle;
+        todayLabel.textFrame.textRange.paragraphFormat.alignment = PowerPoint.ParagraphAlignment.center;
       } catch(e) { console.log("Heute-Label Fehler:", e); }
       
-      console.log("  Heute-Linie bei X=" + Math.round(todayX));
+      console.log("  Heute-Linie bei X=" + Math.round(todayX) + " (Label unten)");
     } else {
       console.log("  Heute liegt außerhalb des Projektzeitraums");
     }
@@ -540,8 +552,9 @@ function computeTimeUnits(start, end, unit) {
       if (weekEnd > end) weekEnd = new Date(end);
       var days = daysBetween(cur, weekEnd);
       if (days > 0) {
+        // NUR Wochennummer ohne "KW"
         units.push({
-          label: "KW" + getWeekNumber(cur),
+          label: String(getWeekNumber(cur)),
           days: days
         });
       }
