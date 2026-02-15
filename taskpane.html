@@ -23,7 +23,7 @@
     </div>
     <div class="info-bar">
       <span id="infoDateTime">--</span>
-      <span id="infoVersion">v2.7</span>
+      <span id="infoVersion">v2.8</span>
       <span id="infoApi">API 1.1</span>
     </div>
   </header>
@@ -32,14 +32,14 @@
     <section class="card">
       <h2>Rastereinheit (RE)</h2>
       <div class="re-row">
-        <input type="number" id="gridUnit" value="0.21" min="0.05" max="1" step="0.01">
+        <input type="number" id="gridUnit" value="0.21" min="0.05" max="5" step="0.01">
         <span class="unit">cm</span>
       </div>
       <div class="presets">
         <button class="pre active" data-value="0.21">0,21</button>
-        <button class="pre" data-value="0.25">0,25</button>
-        <button class="pre" data-value="0.30">0,30</button>
-        <button class="pre" data-value="0.35">0,35</button>
+        <button class="pre" data-value="0.42">0,42</button>
+        <button class="pre" data-value="0.63">0,63</button>
+        <button class="pre" data-value="2.10">2,10</button>
       </div>
     </section>
 
@@ -80,6 +80,12 @@
           <label>Kopfzeile (RE)</label>
           <input type="number" id="ganttHeaderH" value="3" min="2" max="10">
         </div>
+      </div>
+
+      <div class="form-row">
+        <label>Balkenhöhe (RE)</label>
+        <input type="number" id="ganttBarH" value="3" min="1" max="20">
+        <span class="hint-inline">Höhe der GANTT-Balken in Rastereinheiten</span>
       </div>
 
       <div class="phases-header">

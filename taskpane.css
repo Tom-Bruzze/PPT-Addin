@@ -1,5 +1,5 @@
 /*
- Droege GANTT Generator – taskpane.css v2.7
+ Droege GANTT Generator – taskpane.css v2.8
  DROEGE GROUP · 2026
 */
 
@@ -74,6 +74,7 @@ body {
 }
 
 .hint { font-size: 11px; color: var(--text-muted); margin-bottom: 12px; }
+.hint-inline { font-size: 10px; color: var(--text-muted); margin-left: 8px; }
 
 .form-row { margin-bottom: 12px; }
 .form-row label { display: block; font-size: 11px; font-weight: 500; margin-bottom: 4px; color: var(--text-muted); }
@@ -117,6 +118,7 @@ input[type="color"] {
   border-radius: 6px;
   font-size: 12px;
   cursor: pointer;
+  transition: all 0.2s;
 }
 .pre:hover { border-color: var(--primary); }
 .pre.active { background: var(--primary); color: #fff; border-color: var(--primary); }
@@ -133,6 +135,7 @@ input[type="color"] {
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
+  transition: all 0.2s;
 }
 .btn.full { width: 100%; }
 .btn.small { padding: 6px 12px; font-size: 12px; }
@@ -180,6 +183,7 @@ input[type="color"] {
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: background 0.2s;
 }
 .gantt-del:hover { background: #c0392b; }
 
