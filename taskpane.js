@@ -6,7 +6,7 @@
   - Schriftgröße 11pt für alle Texte
   - Kalenderwochen nur Nummer (ohne "KW")
   - Heute-Label unten statt oben
-  - Echte Linien für vertikale Trennlinien
+  - Echte vertikale Linien (addLine mit width=0.01)
 
  DROEGE GROUP · 2026
  ═══════════════════════════════════════════════════════
@@ -320,6 +320,9 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
   var totalHeight = headerHeightPt + (phases.length * rowHeightPt);
   var chartBottom = GANTT_TOP_PT + totalHeight;
   
+  // Höhe der Linien (vom Header bis zum Ende)
+  var lineHeight = chartBottom - chartTop;
+  
   console.log("Layout:", {
     labelWidthPt: labelWidthPt,
     headerHeightPt: headerHeightPt,
@@ -327,7 +330,8 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
     rowHeightPt: rowHeightPt,
     chartLeft: chartLeft,
     chartWidth: chartWidth,
-    totalHeight: totalHeight
+    totalHeight: totalHeight,
+    lineHeight: lineHeight
   });
 
   // ═══ 1. HINTERGRUND ═══
@@ -381,26 +385,30 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
     colX += colWidth;
   }
   
-  // ═══ 3. VERTIKALE TRENNLINIEN (echte Linien) ═══
+  // ═══ 3. VERTIKALE TRENNLINIEN (echte Linien mit addLine) ═══
+  // Für addLine: left/top = Startpunkt, width/height = Distanz zum Endpunkt
+  // Vertikale Linie: width muss sehr klein sein (0.01), height = Länge
   console.log("3. Vertikale Trennlinien (echte Linien): " + linePositions.length);
   
   for (var i = 0; i < linePositions.length; i++) {
     var lineX = linePositions[i];
     
-    // Echte Linie mit addLine()
+    // Echte vertikale Linie
+    // left = X-Position, top = Startpunkt oben
+    // width = 0.01 (minimal, damit Linie senkrecht bleibt)
+    // height = Länge der Linie nach unten
     var line = slide.shapes.addLine(
       PowerPoint.ConnectorType.straight,
       {
-        left: Math.round(lineX),
-        top: Math.round(chartTop),
-        width: 0,  // Vertikale Linie hat Breite 0
-        height: Math.round(chartBottom - chartTop)
+        left: lineX,
+        top: chartTop,
+        width: 0.01,  // Sehr klein für perfekt senkrechte Linie
+        height: lineHeight
       }
     );
     
-    // Linienfarbe auf grau setzen
     line.lineFormat.color = "CCCCCC";
-    line.lineFormat.weight = 1;
+    line.lineFormat.weight = 0.75;
   }
 
   // ═══ 4. PHASEN-ZEILEN UND BALKEN ═══
@@ -476,7 +484,7 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
     }
   }
 
-  // ═══ 5. HEUTE-LINIE (rot) - Label UNTEN ═══
+  // ═══ 5. HEUTE-LINIE (rot, echte Linie) - Label UNTEN ═══
   if (showTodayLine) {
     var today = new Date();
     var todayDay = daysBetween(projStart, today);
@@ -490,10 +498,10 @@ function drawGanttOnSlide(ctx, slide, projStart, projEnd, totalDays, timeUnits, 
       var todayLine = slide.shapes.addLine(
         PowerPoint.ConnectorType.straight,
         {
-          left: Math.round(todayX),
-          top: Math.round(GANTT_TOP_PT),
-          width: 0,
-          height: Math.round(totalHeight)
+          left: todayX,
+          top: GANTT_TOP_PT,
+          width: 0.01,  // Sehr klein für senkrechte Linie
+          height: totalHeight
         }
       );
       todayLine.lineFormat.color = "FF0000";
