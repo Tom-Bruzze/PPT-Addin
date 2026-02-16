@@ -1,29 +1,29 @@
 /*
  ═══════════════════════════════════════════════════════
- Droege GANTT Generator  –  taskpane.js  v2.24
+ Droege GANTT Generator  –  taskpane.js  v2.25
 
- ÄNDERUNGEN v2.24 (basierend auf v2.23):
-  - FIX: GANTT wird auf AKTUELLER Folie erstellt
-  - Linienstärke 0.5 pt für alle Rechteck-Objekte
-  - Raster direkt in Points definiert (exakt)
-  - Feste Foliengröße 16:9 (960 x 540 pt)
+ ÄNDERUNGEN v2.25 (basierend auf v2.24):
+  - Textfelder: linker Rand 0.1 cm, alle anderen 0 cm
+  - Kalenderwochen: nur Nummer (ohne "KW")
+  - Schrift: nicht fett, überall schwarz
+  - Heute-Linie: Datum-Label am unteren Ende
 
  DROEGE GROUP · 2026
  ═══════════════════════════════════════════════════════
 */
 
-var VERSION = "2.24";
+var VERSION = "2.25";
 
 // ═══════════════════════════════════════════════════════
-// RASTER DIREKT IN POINTS (exakt, keine Rundungsfehler)
+// RASTER DIREKT IN POINTS
 // ═══════════════════════════════════════════════════════
 var RE_PT = 5.9527559;  // Rastereinheit in Points (exakt 0.21 cm)
 var CM_PT = 28.3464567; // Points pro cm (exakt)
 
-var gridUnitCm = 0.21;  // Für Anzeige/Kompatibilität
+var gridUnitCm = 0.21;
 var ganttPhaseCount = 0;
 
-// GANTT Layout - in Rastereinheiten
+// GANTT Layout
 var GANTT_LEFT_RE = 9;
 var GANTT_TOP_RE = 17;
 var GANTT_MAX_WIDTH_RE = 118;
@@ -34,13 +34,17 @@ var FONT_SIZE = 11;
 // Linienstärke für Rechteck-Objekte
 var LINE_WEIGHT = 0.5;
 
+// Textfeld-Ränder (in Points)
+var TEXT_MARGIN_LEFT = 0.1 * CM_PT;  // 0.1 cm = ~2.83 pt
+var TEXT_MARGIN_RIGHT = 0;
+var TEXT_MARGIN_TOP = 0;
+var TEXT_MARGIN_BOTTOM = 0;
+
 // Feste Foliengröße (16:9 Standard)
 var SLIDE_WIDTH_PT = 960;
 var SLIDE_HEIGHT_PT = 540;
 
-// ═══════════════════════════════════════════════════════
-// GRID-MARGINS (REST-RAND)
-// ═══════════════════════════════════════════════════════
+// Grid-Margins
 var FULL_UNITS_X = Math.floor(SLIDE_WIDTH_PT / RE_PT);
 var FULL_UNITS_Y = Math.floor(SLIDE_HEIGHT_PT / RE_PT);
 var GRID_MARGIN_LEFT = (SLIDE_WIDTH_PT - (FULL_UNITS_X * RE_PT)) / 2;
@@ -62,7 +66,7 @@ Office.onReady(function(info) {
     initUI();
     updateInfoBar();
     showStatus("Bereit", "success");
-    console.log("GANTT v2.24 - RE_PT:", RE_PT, "Margin:", GRID_MARGIN_LEFT.toFixed(3), "x", GRID_MARGIN_TOP.toFixed(3));
+    console.log("GANTT v2.25 - RE_PT:", RE_PT);
   }
 });
 
@@ -192,10 +196,10 @@ function setSlideSize() {
 }
 
 // ═══════════════════════════════════════════════════════
-// CREATE GANTT CHART - FIX: Aktuelle Folie verwenden
+// CREATE GANTT CHART
 // ═══════════════════════════════════════════════════════
 function createGanttChart() {
-  console.log("=== createGanttChart START v2.24 ===");
+  console.log("=== createGanttChart START v2.25 ===");
   
   var projStart = new Date(document.getElementById("ganttStart").value);
   var projEnd = new Date(document.getElementById("ganttEnd").value);
@@ -255,7 +259,6 @@ function createGanttChart() {
 
   showStatus("Erstelle GANTT auf aktueller Folie...", "working");
 
-  // ═══ FIX: Aktuelle Folie verwenden ═══
   PowerPoint.run(function(ctx) {
     var selectedSlides = ctx.presentation.getSelectedSlides();
     selectedSlides.load("items");
@@ -283,6 +286,29 @@ function createGanttChart() {
     console.error("Fehler:", err);
     showStatus("Fehler: " + err.message, "error");
   });
+}
+
+// ═══════════════════════════════════════════════════════
+// TEXTFORMAT-HILFSFUNKTION (v2.25)
+// ═══════════════════════════════════════════════════════
+function formatTextFrame(shape, text, centered) {
+  try {
+    shape.textFrame.textRange.text = text;
+    shape.textFrame.textRange.font.size = FONT_SIZE;
+    shape.textFrame.textRange.font.bold = false;  // Nicht fett
+    shape.textFrame.textRange.font.color = "000000";  // Immer schwarz
+    shape.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middle;
+    if (centered) {
+      shape.textFrame.textRange.paragraphFormat.alignment = PowerPoint.ParagraphAlignment.center;
+    }
+    // Textfeld-Ränder
+    shape.textFrame.marginLeft = TEXT_MARGIN_LEFT;
+    shape.textFrame.marginRight = TEXT_MARGIN_RIGHT;
+    shape.textFrame.marginTop = TEXT_MARGIN_TOP;
+    shape.textFrame.marginBottom = TEXT_MARGIN_BOTTOM;
+  } catch(e) {
+    console.log("formatTextFrame error:", e);
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -340,14 +366,7 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
       monthCell.lineFormat.color = "808080";
       monthCell.lineFormat.weight = LINE_WEIGHT;
       
-      try {
-        monthCell.textFrame.textRange.text = mg.label;
-        monthCell.textFrame.textRange.font.size = FONT_SIZE;
-        monthCell.textFrame.textRange.font.bold = true;
-        monthCell.textFrame.textRange.font.color = "000000";
-        monthCell.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middle;
-        monthCell.textFrame.textRange.paragraphFormat.alignment = PowerPoint.ParagraphAlignment.center;
-      } catch(e) {}
+      formatTextFrame(monthCell, mg.label, true);
       
       monthX += monthWidth;
     }
@@ -369,13 +388,7 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
     hdr.lineFormat.color = "808080";
     hdr.lineFormat.weight = LINE_WEIGHT;
     
-    try {
-      hdr.textFrame.textRange.text = timeUnits[c].label;
-      hdr.textFrame.textRange.font.size = FONT_SIZE;
-      hdr.textFrame.textRange.font.color = "000000";
-      hdr.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middle;
-      hdr.textFrame.textRange.paragraphFormat.alignment = PowerPoint.ParagraphAlignment.center;
-    } catch(e) {}
+    formatTextFrame(hdr, timeUnits[c].label, true);
   }
   
   // 3. Trennlinien (unverändert)
@@ -391,6 +404,7 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
     var phase = phases[p];
     var rowTop = chartTop + (p * rowHeightPt);
     
+    // Label
     var label = slide.shapes.addGeometricShape(
       PowerPoint.GeometricShapeType.rectangle,
       { left: GANTT_LEFT_PT, top: rowTop, width: labelWidthPt, height: rowHeightPt }
@@ -399,13 +413,9 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
     label.lineFormat.color = "808080";
     label.lineFormat.weight = LINE_WEIGHT;
     
-    try {
-      label.textFrame.textRange.text = " " + phase.name;
-      label.textFrame.textRange.font.size = FONT_SIZE;
-      label.textFrame.textRange.font.color = "000000";
-      label.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middle;
-    } catch(e) {}
+    formatTextFrame(label, phase.name, false);
     
+    // Balken
     var phaseStart = daysBetween(projStart, phase.start);
     var phaseEnd = daysBetween(projStart, phase.end);
     if (phaseStart < 0) phaseStart = 0;
@@ -428,27 +438,62 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
         bar.lineFormat.color = colorHex;
         bar.lineFormat.weight = LINE_WEIGHT;
         
+        // Balken-Text: weiße Schrift auf farbigem Hintergrund
         try {
           bar.textFrame.textRange.text = phase.name;
           bar.textFrame.textRange.font.size = FONT_SIZE;
-          bar.textFrame.textRange.font.color = "FFFFFF";
+          bar.textFrame.textRange.font.bold = false;
+          bar.textFrame.textRange.font.color = "FFFFFF";  // Weiß für Balken
           bar.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middle;
+          bar.textFrame.marginLeft = TEXT_MARGIN_LEFT;
+          bar.textFrame.marginRight = TEXT_MARGIN_RIGHT;
+          bar.textFrame.marginTop = TEXT_MARGIN_TOP;
+          bar.textFrame.marginBottom = TEXT_MARGIN_BOTTOM;
         } catch(e) {}
       }
     }
   }
   
-  // 5. Heute-Linie (unverändert)
+  // 5. Heute-Linie mit Datum-Label am unteren Ende
   if (showTodayLine) {
     var today = new Date();
     var todayDays = daysBetween(projStart, today);
     if (todayDays >= 0 && todayDays <= totalDays) {
       var todayX = (todayDays / totalDays) * chartWidth;
       if (todayX <= chartWidth) {
+        // Linie
         var tl = slide.shapes.addLine(PowerPoint.ConnectorType.straight,
           { left: chartLeft + todayX, top: GANTT_TOP_PT, width: 0.01, height: totalHeight });
         tl.lineFormat.color = "FF0000";
         tl.lineFormat.weight = 2;
+        
+        // Datum-Label am unteren Ende
+        var todayStr = pad2(today.getDate()) + "." + pad2(today.getMonth() + 1) + "." + today.getFullYear();
+        var labelWidth = 60;  // Breite für Datum-Box
+        var labelHeight = 14; // Höhe für Datum-Box
+        var labelLeft = chartLeft + todayX - (labelWidth / 2);  // Zentriert unter der Linie
+        var labelTop = GANTT_TOP_PT + totalHeight + 2;  // Direkt unter dem Diagramm
+        
+        var todayLabel = slide.shapes.addGeometricShape(
+          PowerPoint.GeometricShapeType.rectangle,
+          { left: labelLeft, top: labelTop, width: labelWidth, height: labelHeight }
+        );
+        todayLabel.fill.setSolidColor("FF0000");
+        todayLabel.lineFormat.color = "FF0000";
+        todayLabel.lineFormat.weight = LINE_WEIGHT;
+        
+        try {
+          todayLabel.textFrame.textRange.text = todayStr;
+          todayLabel.textFrame.textRange.font.size = 9;
+          todayLabel.textFrame.textRange.font.bold = false;
+          todayLabel.textFrame.textRange.font.color = "FFFFFF";
+          todayLabel.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middle;
+          todayLabel.textFrame.textRange.paragraphFormat.alignment = PowerPoint.ParagraphAlignment.center;
+          todayLabel.textFrame.marginLeft = 0;
+          todayLabel.textFrame.marginRight = 0;
+          todayLabel.textFrame.marginTop = 0;
+          todayLabel.textFrame.marginBottom = 0;
+        } catch(e) {}
       }
     }
   }
@@ -473,7 +518,8 @@ function computeTimeUnits(start, end, unit) {
         unitEnd = addDays(current, 1);
         break;
       case "week":
-        label = "KW" + getWeekNumber(current);
+        // v2.25: Nur Nummer, ohne "KW"
+        label = "" + getWeekNumber(current);
         unitEnd = addDays(current, 7);
         break;
       case "month":
