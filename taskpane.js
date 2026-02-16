@@ -1,18 +1,17 @@
 /*
  ═══════════════════════════════════════════════════════
- Droege GANTT Generator  –  taskpane.js  v2.18
+ Droege GANTT Generator  –  taskpane.js  v2.19
 
- UPDATES v2.18:
-  - ALLES IN EINER FUNKTION - kein separates drawGantt
-  - Keine Parameterübergabe die fehlschlagen kann
-  - Maximale Debug-Ausgaben
-  - Einheitliche Linienstärke 0.5 Pt
+ UPDATES v2.19:
+  - DEBUG-AUSGABE DIREKT IM PANEL (ganttInfo)
+  - Zeigt berechnete Positionen an
+  - Alles in einer Funktion
 
  DROEGE GROUP · 2026
  ═══════════════════════════════════════════════════════
 */
 
-var VERSION = "2.18";
+var VERSION = "2.19";
 
 // ═══════════════════════════════════════════
 // KONSTANTEN
@@ -85,9 +84,6 @@ function initUI() {
   var btnGantt = document.getElementById("createGantt");
   if (btnGantt) {
     btnGantt.addEventListener("click", generateGantt);
-    console.log("✓ GANTT Button gebunden an createGantt");
-  } else {
-    console.error("✗ Button createGantt nicht gefunden!");
   }
   
   var btnAdd = document.getElementById("ganttAddPhase");
@@ -219,20 +215,19 @@ async function setSlideSize(size) {
 }
 
 // ═══════════════════════════════════════════
-// GANTT GENERATOR - ALLES IN EINER FUNKTION
+// GANTT GENERATOR
 // ═══════════════════════════════════════════
 
 async function generateGantt() {
-  console.log("╔═══════════════════════════════════════════╗");
-  console.log("║ GANTT GENERATOR v2.18 GESTARTET           ║");
-  console.log("╚═══════════════════════════════════════════╝");
+  var debugLog = [];
+  debugLog.push("GANTT v2.19 gestartet");
   
   showStatus("Generiere GANTT...", "info");
   ganttInfo("Generiere...", false);
   
   // 1. Phasen sammeln
   var phases = getPhases();
-  console.log("Phasen gefunden: " + phases.length);
+  debugLog.push("Phasen: " + phases.length);
   
   if (phases.length === 0) {
     ganttInfo("Keine gültigen Phasen definiert!", true);
@@ -243,7 +238,6 @@ async function generateGantt() {
   // 2. Zeitraum
   var projStart = new Date(document.getElementById("ganttStart").value);
   var projEnd = new Date(document.getElementById("ganttEnd").value);
-  console.log("Zeitraum: " + projStart + " bis " + projEnd);
   
   if (isNaN(projStart.getTime()) || isNaN(projEnd.getTime()) || projEnd <= projStart) {
     ganttInfo("Ungültiger Zeitraum!", true);
@@ -254,7 +248,7 @@ async function generateGantt() {
   // 3. Zeiteinheiten
   var unit = document.getElementById("ganttUnit").value;
   var timeUnits = computeTimeUnits(projStart, projEnd, unit);
-  console.log("Zeiteinheiten: " + timeUnits.length + " (" + unit + ")");
+  debugLog.push("Zeiteinheiten: " + timeUnits.length);
   
   if (timeUnits.length === 0) {
     ganttInfo("Keine Zeiteinheiten berechnet!", true);
@@ -264,44 +258,31 @@ async function generateGantt() {
   // 4. GANTT zeichnen
   try {
     await PowerPoint.run(async function(context) {
-      console.log("PowerPoint.run gestartet");
+      debugLog.push("PowerPoint.run OK");
       
-      // ═══════════════════════════════════════════
-      // A) FOLIENGRÖSSE LADEN
-      // ═══════════════════════════════════════════
+      // A) FOLIENGRÖSSE
       var presentation = context.presentation;
       presentation.load("slideWidth,slideHeight");
       await context.sync();
       
       var slideWidth = presentation.slideWidth;
       var slideHeight = presentation.slideHeight;
-      console.log("Folie: " + slideWidth + " x " + slideHeight + " pt");
-      console.log("Folie: " + (slideWidth/CM).toFixed(2) + " x " + (slideHeight/CM).toFixed(2) + " cm");
+      debugLog.push("Folie: " + slideWidth.toFixed(1) + " x " + slideHeight.toFixed(1) + " pt");
       
-      // ═══════════════════════════════════════════
-      // B) MARGIN BERECHNEN
-      // ═══════════════════════════════════════════
+      // B) MARGIN
       var fullUnitsX = Math.floor(slideWidth / RE_PT);
       var fullUnitsY = Math.floor(slideHeight / RE_PT);
       var marginLeft = (slideWidth - (fullUnitsX * RE_PT)) / 2;
       var marginTop = (slideHeight - (fullUnitsY * RE_PT)) / 2;
+      debugLog.push("Margin: " + marginLeft.toFixed(2) + " x " + marginTop.toFixed(2) + " pt");
       
-      console.log("Volle RE: X=" + fullUnitsX + ", Y=" + fullUnitsY);
-      console.log("Margin: " + marginLeft.toFixed(4) + " x " + marginTop.toFixed(4) + " pt");
+      // C) GANTT POSITION
+      var ganttLeftPt = marginLeft + (GANTT_LEFT_RE * RE_PT);
+      var ganttTopPt = marginTop + (GANTT_TOP_RE * RE_PT);
+      debugLog.push("GANTT bei: " + ganttLeftPt.toFixed(1) + " x " + ganttTopPt.toFixed(1) + " pt");
+      debugLog.push("GANTT bei: " + (ganttLeftPt/CM).toFixed(2) + " x " + (ganttTopPt/CM).toFixed(2) + " cm");
       
-      // ═══════════════════════════════════════════
-      // C) POSITION BERECHNEN
-      // ═══════════════════════════════════════════
-      var GANTT_LEFT_PT = marginLeft + (GANTT_LEFT_RE * RE_PT);
-      var GANTT_TOP_PT = marginTop + (GANTT_TOP_RE * RE_PT);
-      
-      console.log("GANTT Position:");
-      console.log("  Left: " + GANTT_LEFT_PT.toFixed(4) + " pt = " + (GANTT_LEFT_PT/CM).toFixed(4) + " cm");
-      console.log("  Top: " + GANTT_TOP_PT.toFixed(4) + " pt = " + (GANTT_TOP_PT/CM).toFixed(4) + " cm");
-      
-      // ═══════════════════════════════════════════
-      // D) LAYOUT-WERTE
-      // ═══════════════════════════════════════════
+      // D) LAYOUT
       var labelWidthRE = 15;
       var headerHeightRE = 3;
       var barHeightRE = 2;
@@ -314,41 +295,34 @@ async function generateGantt() {
       var rowHeightPt = rowHeightRE * RE_PT;
       var colWidthPt = colWidthRE * RE_PT;
       
-      // Sichtbare Spalten
       var availableWidthRE = GANTT_MAX_WIDTH_RE - labelWidthRE;
       var visibleColumns = Math.min(timeUnits.length, Math.floor(availableWidthRE / colWidthRE));
       if (visibleColumns < timeUnits.length) {
         timeUnits = timeUnits.slice(0, visibleColumns);
       }
       
-      var chartLeft = GANTT_LEFT_PT + labelWidthPt;
+      var chartLeft = ganttLeftPt + labelWidthPt;
       var chartWidth = visibleColumns * colWidthPt;
       var totalWidth = labelWidthPt + chartWidth;
       
       var needsMonthRow = (unit === "day" || unit === "week" || unit === "quarter");
       var monthRowHeightPt = needsMonthRow ? headerHeightPt : 0;
       var totalHeaderHeight = monthRowHeightPt + headerHeightPt;
-      var chartTop = GANTT_TOP_PT + totalHeaderHeight;
+      var chartTop = ganttTopPt + totalHeaderHeight;
       var totalHeight = totalHeaderHeight + (phases.length * rowHeightPt);
       var barPadding = (rowHeightPt - barHeightPt) / 2;
       
-      console.log("Layout: " + totalWidth.toFixed(2) + " x " + totalHeight.toFixed(2) + " pt");
-      
-      // ═══════════════════════════════════════════
-      // E) FOLIE HOLEN
-      // ═══════════════════════════════════════════
+      // E) FOLIE
       var slide = presentation.getSelectedSlides().getItemAt(0);
       
-      // ═══════════════════════════════════════════
-      // F) HINTERGRUND ZEICHNEN
-      // ═══════════════════════════════════════════
-      console.log("Zeichne Hintergrund bei " + GANTT_LEFT_PT + ", " + GANTT_TOP_PT);
+      // F) HINTERGRUND
+      debugLog.push("Zeichne BG bei L=" + ganttLeftPt.toFixed(1) + ", T=" + ganttTopPt.toFixed(1));
       
       var bg = slide.shapes.addGeometricShape(
         PowerPoint.GeometricShapeType.rectangle,
         {
-          left: GANTT_LEFT_PT,
-          top: GANTT_TOP_PT,
+          left: ganttLeftPt,
+          top: ganttTopPt,
           width: totalWidth,
           height: totalHeight
         }
@@ -357,10 +331,8 @@ async function generateGantt() {
       bg.lineFormat.color = "808080";
       bg.lineFormat.weight = LINE_WEIGHT;
       
-      // ═══════════════════════════════════════════
-      // G) HEADER-ZELLEN
-      // ═══════════════════════════════════════════
-      var headerTop = GANTT_TOP_PT + monthRowHeightPt;
+      // G) HEADER
+      var headerTop = ganttTopPt + monthRowHeightPt;
       
       for (var c = 0; c < timeUnits.length; c++) {
         var colX = chartLeft + (c * colWidthPt);
@@ -385,12 +357,10 @@ async function generateGantt() {
           hdr.textFrame.textRange.font.color = "333333";
           hdr.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middle;
           hdr.textFrame.textRange.paragraphFormat.alignment = PowerPoint.ParagraphAlignment.center;
-        } catch(e) { console.log("Text-Fehler Header: " + e.message); }
+        } catch(e) {}
       }
       
-      // ═══════════════════════════════════════════
-      // H) ZEILEN MIT LABELS UND BALKEN
-      // ═══════════════════════════════════════════
+      // H) ZEILEN
       var totalDays = daysBetween(projStart, projEnd);
       
       for (var i = 0; i < phases.length; i++) {
@@ -401,7 +371,7 @@ async function generateGantt() {
         var rowBg = slide.shapes.addGeometricShape(
           PowerPoint.GeometricShapeType.rectangle,
           {
-            left: GANTT_LEFT_PT,
+            left: ganttLeftPt,
             top: rowTop,
             width: totalWidth,
             height: rowHeightPt
@@ -415,7 +385,7 @@ async function generateGantt() {
         var label = slide.shapes.addGeometricShape(
           PowerPoint.GeometricShapeType.rectangle,
           {
-            left: GANTT_LEFT_PT,
+            left: ganttLeftPt,
             top: rowTop,
             width: labelWidthPt,
             height: rowHeightPt
@@ -433,7 +403,7 @@ async function generateGantt() {
           label.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middle;
           label.textFrame.textRange.paragraphFormat.alignment = PowerPoint.ParagraphAlignment.left;
           label.textFrame.marginLeft = 5;
-        } catch(e) { console.log("Text-Fehler Label: " + e.message); }
+        } catch(e) {}
         
         // Balken
         var phaseStartDay = Math.max(0, daysBetween(projStart, p.start));
@@ -466,9 +436,7 @@ async function generateGantt() {
         }
       }
       
-      // ═══════════════════════════════════════════
       // I) HEUTE-LINIE
-      // ═══════════════════════════════════════════
       var today = new Date();
       if (today >= projStart && today <= projEnd && totalDays > 0) {
         var todayDays = daysBetween(projStart, today);
@@ -479,7 +447,7 @@ async function generateGantt() {
           PowerPoint.ConnectorType.straight,
           {
             left: todayX,
-            top: GANTT_TOP_PT,
+            top: ganttTopPt,
             width: 0,
             height: totalHeight
           }
@@ -488,21 +456,20 @@ async function generateGantt() {
         todayLine.lineFormat.weight = 2;
       }
       
-      // ═══════════════════════════════════════════
-      // J) SYNC
-      // ═══════════════════════════════════════════
-      console.log("Sync...");
+      debugLog.push("Sync...");
       await context.sync();
-      console.log("GANTT erfolgreich erstellt!");
+      debugLog.push("FERTIG!");
     });
     
-    ganttInfo("GANTT erstellt: " + phases.length + " Phasen, " + timeUnits.length + " Spalten", false);
+    // DEBUG-AUSGABE IM PANEL
+    var debugHtml = "<strong>DEBUG:</strong><br>" + debugLog.join("<br>");
+    ganttInfo(debugHtml, false);
     showStatus("GANTT erstellt", "success");
     
   } catch (e) {
-    console.error("FEHLER: " + e.message);
-    console.error(e.stack);
-    ganttInfo("Fehler: " + e.message, true);
+    debugLog.push("FEHLER: " + e.message);
+    var debugHtml = "<strong>DEBUG:</strong><br>" + debugLog.join("<br>");
+    ganttInfo(debugHtml, true);
     showStatus("Fehler: " + e.message, "error");
   }
 }
