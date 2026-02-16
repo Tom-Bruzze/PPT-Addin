@@ -27,7 +27,6 @@
       <span id="infoApi">API 1.1</span>
     </div>
   </header>
-
   <main class="main">
     <section class="card">
       <h2>Rastereinheit (RE)</h2>
@@ -42,26 +41,20 @@
         <button class="pre" data-value="2.10">2,10</button>
       </div>
     </section>
-
     <section class="card">
       <h2>Folienformat</h2>
       <p class="hint">Setzt das Format auf 27,728 × 19,297 cm</p>
       <button id="setSlide" class="btn primary full">Format setzen</button>
     </section>
-
     <section class="card gantt-card">
       <h2>GANTT-Diagramm</h2>
-      <p class="hint">Position: Links=9 RE, Oben=17 RE, Max.Breite=118 RE</p>
-      
+      <p class="hint">Position: 9 RE links, 17 RE oben | Max: 118 RE breit</p>
       <div class="form-row">
         <label>Projektzeitraum</label>
         <div class="date-row">
-          <input type="date" id="ganttStart">
-          <span>–</span>
-          <input type="date" id="ganttEnd">
+          <input type="date" id="ganttStart"><span>–</span><input type="date" id="ganttEnd">
         </div>
       </div>
-
       <div class="form-row">
         <label>Zeiteinheit</label>
         <select id="ganttUnit">
@@ -71,69 +64,39 @@
           <option value="quarter">Quartale</option>
         </select>
       </div>
-
       <div class="form-row">
         <label>Spaltenbreiten-Modus</label>
         <select id="ganttWidthMode">
-          <option value="fixed" selected>Feste Breite (RE)</option>
-          <option value="auto">Auto-Verteilung (max. 118 RE)</option>
+          <option value="fixed" selected>Feste Breite (in RE)</option>
+          <option value="auto">Auto-Verteilung (ganze RE)</option>
         </select>
       </div>
-
       <div class="form-row inline">
-        <div>
-          <label>Label-Breite (RE)</label>
-          <input type="number" id="ganttLabelW" value="20" min="5" max="50">
-        </div>
-        <div id="colWidthDiv">
-          <label>Spaltenbreite (RE)</label>
-          <input type="number" id="ganttColW" value="3" min="1" max="20">
-        </div>
+        <div><label>Label-Breite (RE)</label><input type="number" id="ganttLabelW" value="20" min="5" max="50"></div>
+        <div id="colWidthDiv"><label>Spaltenbreite (RE)</label><input type="number" id="ganttColW" value="3" min="1" max="20"></div>
       </div>
-
       <div class="form-row inline">
-        <div>
-          <label>Kopfzeile (RE)</label>
-          <input type="number" id="ganttHeaderH" value="3" min="2" max="10">
-        </div>
-        <div>
-          <label>Zeilenhöhe (RE)</label>
-          <input type="number" id="ganttRowH" value="5" min="2" max="20">
-        </div>
+        <div><label>Kopfzeile (RE)</label><input type="number" id="ganttHeaderH" value="3" min="2" max="10"></div>
+        <div><label>Zeilenhöhe (RE)</label><input type="number" id="ganttRowH" value="5" min="2" max="20"></div>
       </div>
-
       <div class="form-row inline">
-        <div>
-          <label>Balkenhöhe (RE)</label>
-          <input type="number" id="ganttBarH" value="3" min="1" max="20">
-        </div>
-        <div>
-          <!-- Platzhalter für symmetrisches Layout -->
-        </div>
+        <div><label>Balkenhöhe (RE)</label><input type="number" id="ganttBarH" value="3" min="1" max="20"></div>
+        <div></div>
       </div>
-
       <div class="form-row checkbox-row">
         <label class="checkbox-label">
           <input type="checkbox" id="ganttTodayLine" checked>
           <span class="checkmark"></span>
-          <span class="checkbox-text">"Heute"-Linie anzeigen <span class="today-indicator">(rot)</span></span>
+          <span class="checkbox-text">"Heute"-Linie <span class="today-indicator">(rot)</span></span>
         </label>
       </div>
-
-      <div class="phases-header">
-        <label>Phasen</label>
-        <button id="ganttAddPhase" class="btn small">+ Phase</button>
-      </div>
+      <div class="phases-header"><label>Phasen</label><button id="ganttAddPhase" class="btn small">+ Phase</button></div>
       <div id="ganttPhases" class="gantt-phases"></div>
-
       <div id="ganttInfo" class="gantt-info"></div>
-
       <button id="createGantt" class="btn primary full">GANTT erstellen</button>
     </section>
   </main>
-
   <div id="status" class="status">Bereit</div>
-
   <script src="taskpane.js"></script>
 </body>
 </html>
