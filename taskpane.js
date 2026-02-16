@@ -168,14 +168,14 @@ function initUI() {
   if (it) it.addEventListener("click", insertTable);
   
   // Set Slide Size
-  var ss = document.getElementById("setSlideSize");
+  var ss = document.getElementById("setSlide");
   if (ss) ss.addEventListener("click", function() {
     var sel = document.getElementById("slideSize").value;
     setSlideSize(sel);
   });
   
   // GANTT Generate
-  var btnGantt = document.getElementById("ganttGenerate");
+  var btnGantt = document.getElementById("createGantt");
   if (btnGantt) btnGantt.addEventListener("click", generateGantt);
   
   // GANTT Add Phase
