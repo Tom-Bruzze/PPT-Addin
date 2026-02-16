@@ -1,18 +1,17 @@
 /*
  ═══════════════════════════════════════════════════════
- Droege GANTT Generator  –  taskpane.js  v2.16
+ Droege GANTT Generator  –  taskpane.js  v2.17
 
- UPDATES v2.16:
-  - KORRIGIERTE REST-RAND BERECHNUNG
-  - gridMarginLeft/Top werden TATSÄCHLICH auf alle Positionen angewendet
-  - Einheitliche Linienstärke 0.5 Pt für alle Objekte mit Rändern
-  - Keine Math.round() mehr bei RE-Berechnungen
+ UPDATES v2.17:
+  - MARGIN-BERECHNUNG DIREKT IN drawGantt() - garantiert korrekt
+  - Einheitliche Linienstärke 0.5 Pt für alle Objekte
+  - Keine globalen Variablen für Margins mehr
 
  DROEGE GROUP · 2026
  ═══════════════════════════════════════════════════════
 */
 
-var VERSION = "2.16";
+var VERSION = "2.17";
 
 // ═══════════════════════════════════════════
 // EXAKTE KONSTANTEN (keine Rundung!)
@@ -24,13 +23,6 @@ var RE_PT = RE_CM * POINTS_PER_CM;  // 5.95275590551 points exakt
 // Legacy-Kompatibilität
 var CM = POINTS_PER_CM;
 var gridUnitCm = RE_CM;
-
-// ═══════════════════════════════════════════
-// RASTER-MARGINS (dynamisch berechnet)
-// ═══════════════════════════════════════════
-var gridMarginLeft = 0;
-var gridMarginTop = 0;
-var gridInitialized = false;
 var ganttPhaseCount = 0;
 
 // GANTT Layout - FEST in Rastereinheiten
@@ -43,71 +35,8 @@ var FONT_SIZE = 11;
 var LINE_WEIGHT = 0.5;  // Einheitliche Linienstärke für alle Ränder
 
 // ═══════════════════════════════════════════
-// RASTER-INITIALISIERUNG
+// HELPER: RE zu Points (für Größen)
 // ═══════════════════════════════════════════
-
-async function initializeGrid() {
-  try {
-    await PowerPoint.run(async function(context) {
-      var presentation = context.presentation;
-      presentation.load("slideWidth,slideHeight");
-      await context.sync();
-      
-      var slideWidth = presentation.slideWidth;
-      var slideHeight = presentation.slideHeight;
-      
-      // Berechne wie viele GANZE RE passen
-      var fullUnitsX = Math.floor(slideWidth / RE_PT);
-      var fullUnitsY = Math.floor(slideHeight / RE_PT);
-      
-      // Rest gleichmäßig auf beide Seiten verteilen = Margin zum ersten Rasterpunkt
-      var totalGridWidth = fullUnitsX * RE_PT;
-      var totalGridHeight = fullUnitsY * RE_PT;
-      gridMarginLeft = (slideWidth - totalGridWidth) / 2;
-      gridMarginTop = (slideHeight - totalGridHeight) / 2;
-      
-      gridInitialized = true;
-      
-      console.log("═══════════════════════════════════════════");
-      console.log("RASTER INITIALISIERT v2.16");
-      console.log("  Folie: " + (slideWidth/POINTS_PER_CM).toFixed(2) + " x " + (slideHeight/POINTS_PER_CM).toFixed(2) + " cm");
-      console.log("  Folie: " + slideWidth.toFixed(4) + " x " + slideHeight.toFixed(4) + " pt");
-      console.log("  Volle RE X: " + fullUnitsX + ", Y: " + fullUnitsY);
-      console.log("  Rest-Rand (Margin): " + gridMarginLeft.toFixed(4) + " x " + gridMarginTop.toFixed(4) + " pt");
-      console.log("  Rest-Rand (Margin): " + (gridMarginLeft/POINTS_PER_CM).toFixed(4) + " x " + (gridMarginTop/POINTS_PER_CM).toFixed(4) + " cm");
-      console.log("═══════════════════════════════════════════");
-      
-      updateGridInfoUI(slideWidth, slideHeight);
-    });
-    return true;
-  } catch (error) {
-    console.error("Grid-Init Fehler:", error);
-    return false;
-  }
-}
-
-function updateGridInfoUI(w, h) {
-  var el = document.getElementById("gridInfo");
-  if (el) {
-    el.innerHTML = "Folie: " + (w/POINTS_PER_CM).toFixed(2) + " × " + (h/POINTS_PER_CM).toFixed(2) + " cm | Margin: " + (gridMarginLeft/POINTS_PER_CM).toFixed(3) + " cm";
-    el.style.color = "#27ae60";
-  }
-}
-
-// ═══════════════════════════════════════════
-// POSITIONS-FUNKTIONEN (MIT MARGIN!)
-// ═══════════════════════════════════════════
-
-// Konvertiert RE zu absoluten Points (MIT Margin!)
-function reToAbsoluteX(re) {
-  return gridMarginLeft + (re * RE_PT);
-}
-
-function reToAbsoluteY(re) {
-  return gridMarginTop + (re * RE_PT);
-}
-
-// Nur RE zu Points (für Breiten/Höhen, OHNE Margin)
 function re2pt(re) {
   return re * RE_PT;
 }
@@ -116,12 +45,10 @@ function re2pt(re) {
 // OFFICE INIT
 // ═══════════════════════════════════════════
 
-Office.onReady(async function(info) {
+Office.onReady(function(info) {
   if (info.host === Office.HostType.PowerPoint) {
     initUI();
     updateInfoBar();
-    showStatus("Initialisiere Raster...", "info");
-    await initializeGrid();
     showStatus("Bereit (v" + VERSION + ")", "success");
   }
 });
@@ -174,9 +101,14 @@ function initUI() {
     setSlideSize(sel);
   });
   
-  // GANTT Generate
+  // GANTT Generate - KORRIGIERTE ID
   var btnGantt = document.getElementById("createGantt");
-  if (btnGantt) btnGantt.addEventListener("click", generateGantt);
+  if (btnGantt) {
+    btnGantt.addEventListener("click", generateGantt);
+    console.log("✓ GANTT Button gebunden");
+  } else {
+    console.error("✗ GANTT Button nicht gefunden!");
+  }
   
   // GANTT Add Phase
   var btnAdd = document.getElementById("ganttAddPhase");
@@ -301,38 +233,39 @@ async function setSlideSize(size) {
       }
       await context.sync();
     });
-    
-    // Re-initialize grid after size change
-    await initializeGrid();
-    showStatus("Foliengröße gesetzt, Raster aktualisiert", "success");
+    showStatus("Foliengröße gesetzt", "success");
   } catch (e) {
     showStatus("Fehler: " + e.message, "error");
   }
 }
 
 // ═══════════════════════════════════════════
-// INSERT RECTANGLE (mit korrekter Position)
+// INSERT RECTANGLE
 // ═══════════════════════════════════════════
 
 async function insertRectangle() {
-  if (!gridInitialized) {
-    await initializeGrid();
-  }
-  
   showStatus("Füge Rechteck ein...", "info");
   try {
     await PowerPoint.run(async function(context) {
-      var slide = context.presentation.getSelectedSlides().getItemAt(0);
+      var presentation = context.presentation;
+      presentation.load("slideWidth,slideHeight");
+      await context.sync();
       
-      // Position: 9 RE vom Raster-Ursprung (+ Margin = absolute Position)
-      var leftPt = reToAbsoluteX(GANTT_LEFT_RE);
-      var topPt = reToAbsoluteY(GANTT_TOP_RE);
-      var widthPt = re2pt(10);  // 10 RE breit
-      var heightPt = re2pt(5); // 5 RE hoch
+      // Berechne Margin HIER
+      var slideWidth = presentation.slideWidth;
+      var slideHeight = presentation.slideHeight;
+      var fullUnitsX = Math.floor(slideWidth / RE_PT);
+      var fullUnitsY = Math.floor(slideHeight / RE_PT);
+      var marginLeft = (slideWidth - (fullUnitsX * RE_PT)) / 2;
+      var marginTop = (slideHeight - (fullUnitsY * RE_PT)) / 2;
       
-      console.log("Rechteck einfügen:");
-      console.log("  Position: " + leftPt.toFixed(4) + " x " + topPt.toFixed(4) + " pt");
-      console.log("  Position: " + (leftPt/POINTS_PER_CM).toFixed(4) + " x " + (topPt/POINTS_PER_CM).toFixed(4) + " cm");
+      var slide = presentation.getSelectedSlides().getItemAt(0);
+      
+      // Position mit Margin
+      var leftPt = marginLeft + (GANTT_LEFT_RE * RE_PT);
+      var topPt = marginTop + (GANTT_TOP_RE * RE_PT);
+      var widthPt = re2pt(10);
+      var heightPt = re2pt(5);
       
       var shape = slide.shapes.addGeometricShape(
         PowerPoint.GeometricShapeType.rectangle,
@@ -360,19 +293,26 @@ async function insertRectangle() {
 // ═══════════════════════════════════════════
 
 async function insertTable() {
-  if (!gridInitialized) {
-    await initializeGrid();
-  }
-  
   showStatus("Füge Tabelle ein...", "info");
   try {
     await PowerPoint.run(async function(context) {
-      var slide = context.presentation.getSelectedSlides().getItemAt(0);
+      var presentation = context.presentation;
+      presentation.load("slideWidth,slideHeight");
+      await context.sync();
       
-      var leftPt = reToAbsoluteX(GANTT_LEFT_RE);
-      var topPt = reToAbsoluteY(GANTT_TOP_RE);
+      // Berechne Margin HIER
+      var slideWidth = presentation.slideWidth;
+      var slideHeight = presentation.slideHeight;
+      var fullUnitsX = Math.floor(slideWidth / RE_PT);
+      var fullUnitsY = Math.floor(slideHeight / RE_PT);
+      var marginLeft = (slideWidth - (fullUnitsX * RE_PT)) / 2;
+      var marginTop = (slideHeight - (fullUnitsY * RE_PT)) / 2;
       
-      // 3x3 Tabelle aus Rechtecken
+      var slide = presentation.getSelectedSlides().getItemAt(0);
+      
+      var leftPt = marginLeft + (GANTT_LEFT_RE * RE_PT);
+      var topPt = marginTop + (GANTT_TOP_RE * RE_PT);
+      
       var cellWidth = re2pt(8);
       var cellHeight = re2pt(3);
       
@@ -404,10 +344,7 @@ async function insertTable() {
 // ═══════════════════════════════════════════
 
 async function generateGantt() {
-  if (!gridInitialized) {
-    await initializeGrid();
-  }
-  
+  console.log("generateGantt() aufgerufen");
   showStatus("Generiere GANTT...", "info");
   ganttInfo("Generiere...", false);
   
@@ -437,7 +374,29 @@ async function generateGantt() {
   
   try {
     await PowerPoint.run(async function(context) {
-      await drawGantt(context, phases, timeUnits, projStart, projEnd, unit);
+      // ═══════════════════════════════════════════
+      // MARGIN DIREKT HIER BERECHNEN!
+      // ═══════════════════════════════════════════
+      var presentation = context.presentation;
+      presentation.load("slideWidth,slideHeight");
+      await context.sync();
+      
+      var slideWidth = presentation.slideWidth;
+      var slideHeight = presentation.slideHeight;
+      
+      // Berechne Rest-Rand
+      var fullUnitsX = Math.floor(slideWidth / RE_PT);
+      var fullUnitsY = Math.floor(slideHeight / RE_PT);
+      var marginLeft = (slideWidth - (fullUnitsX * RE_PT)) / 2;
+      var marginTop = (slideHeight - (fullUnitsY * RE_PT)) / 2;
+      
+      console.log("═══════════════════════════════════════════");
+      console.log("GANTT v2.17 - MARGIN BERECHNUNG");
+      console.log("  Folie: " + (slideWidth/CM).toFixed(2) + " x " + (slideHeight/CM).toFixed(2) + " cm");
+      console.log("  Margin: " + (marginLeft/CM).toFixed(4) + " x " + (marginTop/CM).toFixed(4) + " cm");
+      console.log("═══════════════════════════════════════════");
+      
+      await drawGantt(context, phases, timeUnits, projStart, projEnd, unit, marginLeft, marginTop);
     });
     ganttInfo("GANTT erstellt: " + phases.length + " Phasen, " + timeUnits.length + " Spalten", false);
     showStatus("GANTT erstellt", "success");
@@ -448,7 +407,7 @@ async function generateGantt() {
   }
 }
 
-async function drawGantt(ctx, phases, timeUnits, projStart, projEnd, unit) {
+async function drawGantt(ctx, phases, timeUnits, projStart, projEnd, unit, marginLeft, marginTop) {
   var slide = ctx.presentation.getSelectedSlides().getItemAt(0);
   
   // Layout in RE
@@ -467,18 +426,13 @@ async function drawGantt(ctx, phases, timeUnits, projStart, projEnd, unit) {
     console.log("Spalten beschränkt auf " + visibleColumns);
   }
   
-  // ═══ ABSOLUTE POSITIONIERUNG (MIT MARGIN!) ═══
-  var GANTT_LEFT_PT = reToAbsoluteX(GANTT_LEFT_RE);
-  var GANTT_TOP_PT = reToAbsoluteY(GANTT_TOP_RE);
+  // ═══ ABSOLUTE POSITIONIERUNG MIT ÜBERGEBENEM MARGIN ═══
+  var GANTT_LEFT_PT = marginLeft + (GANTT_LEFT_RE * RE_PT);
+  var GANTT_TOP_PT = marginTop + (GANTT_TOP_RE * RE_PT);
   
-  console.log("═══════════════════════════════════════════");
-  console.log("GANTT POSITIONIERUNG v2.16");
-  console.log("  Margin: " + gridMarginLeft.toFixed(4) + " x " + gridMarginTop.toFixed(4) + " pt");
-  console.log("  GANTT_LEFT_PT: " + GANTT_LEFT_PT.toFixed(4) + " pt = " + (GANTT_LEFT_PT/POINTS_PER_CM).toFixed(4) + " cm");
-  console.log("  GANTT_TOP_PT: " + GANTT_TOP_PT.toFixed(4) + " pt = " + (GANTT_TOP_PT/POINTS_PER_CM).toFixed(4) + " cm");
-  console.log("═══════════════════════════════════════════");
+  console.log("GANTT Position: " + (GANTT_LEFT_PT/CM).toFixed(4) + " x " + (GANTT_TOP_PT/CM).toFixed(4) + " cm");
   
-  // Dimensionen in Points (nur Größen, kein Offset)
+  // Dimensionen in Points
   var labelWidthPt = re2pt(labelWidthRE);
   var headerHeightPt = re2pt(headerHeightRE);
   var barHeightPt = re2pt(barHeightRE);
@@ -496,7 +450,6 @@ async function drawGantt(ctx, phases, timeUnits, projStart, projEnd, unit) {
   var totalHeaderHeight = monthRowHeightPt + headerHeightPt;
   var chartTop = GANTT_TOP_PT + totalHeaderHeight;
   var totalHeight = totalHeaderHeight + (phases.length * rowHeightPt);
-  var chartBottom = GANTT_TOP_PT + totalHeight;
   
   // ═══ 1. HINTERGRUND ═══
   var bg = slide.shapes.addGeometricShape(
@@ -575,7 +528,6 @@ async function drawGantt(ctx, phases, timeUnits, projStart, projEnd, unit) {
       hdr.textFrame.textRange.paragraphFormat.alignment = PowerPoint.ParagraphAlignment.center;
     } catch(e) {}
     
-    // Trennlinien-Position merken
     if (c > 0) {
       linePositions.push(chartLeft + colX);
     }
@@ -590,7 +542,7 @@ async function drawGantt(ctx, phases, timeUnits, projStart, projEnd, unit) {
     var p = phases[i];
     var rowTop = chartTop + (i * rowHeightPt);
     
-    // Zeilenhintergrund (alternierend)
+    // Zeilenhintergrund
     var rowBg = slide.shapes.addGeometricShape(
       PowerPoint.GeometricShapeType.rectangle,
       {
@@ -640,10 +592,8 @@ async function drawGantt(ctx, phases, timeUnits, projStart, projEnd, unit) {
       var barW = (barEndPct - barStartPct) * chartWidth;
       var barY = rowTop + barPadding;
       
-      // Mindestbreite
       if (barW < 4) barW = 4;
       
-      // Hex-Farbe ohne #
       var fillColor = p.color.replace("#", "");
       
       var bar = slide.shapes.addGeometricShape(
@@ -695,7 +645,6 @@ async function drawGantt(ctx, phases, timeUnits, projStart, projEnd, unit) {
     todayLine.lineFormat.color = "FF0000";
     todayLine.lineFormat.weight = 2;
     
-    // Heute-Label
     try {
       var todayLabel = slide.shapes.addGeometricShape(
         PowerPoint.GeometricShapeType.rectangle,
