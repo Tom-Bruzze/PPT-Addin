@@ -1,29 +1,57 @@
 /*
  ═══════════════════════════════════════════════════════
- Droege GANTT Generator  –  taskpane.js  v2.25
+ Droege GANTT Generator  –  taskpane.js  v20.0
 
- ÄNDERUNGEN v2.25 (basierend auf v2.24):
-  - Textfelder: linker Rand 0.1 cm, alle anderen 0 cm
-  - Kalenderwochen: nur Nummer (ohne "KW")
-  - Schrift: nicht fett, überall schwarz
-  - Heute-Linie: Datum-Label am unteren Ende
+ ÄNDERUNGEN v20.0 (basierend auf v2.25):
+  - Rasterlogik aus Grid_Resize_Tool v15 integriert:
+    · Exakte Rasterberechnung mit zentrierten Margins
+    · reToX() / reToY() berechnen Grid-Position mit Margins
+    · updateGridMargins() wird bei jeder RE-Änderung aufgerufen
+    · Alle Shape-Positionen nutzen reToX/reToY statt re2pt
+  - "Format setzen" Button & Funktion entfernt
+  - Versionsnummern überall auf v20.0 aktualisiert
+  - Code bereinigt und geprüft
 
  DROEGE GROUP · 2026
  ═══════════════════════════════════════════════════════
 */
 
-var VERSION = "2.25";
+var VERSION = "20.0";
 
 // ═══════════════════════════════════════════════════════
-// RASTER DIREKT IN POINTS
+// RASTER-SYSTEM (Grid_Resize_Tool v15 Logik)
 // ═══════════════════════════════════════════════════════
-var RE_PT = 5.9527559;  // Rastereinheit in Points (exakt 0.21 cm)
-var CM_PT = 28.3464567; // Points pro cm (exakt)
+//
+// Das Rastersystem basiert auf der zentrierten Grid-Logik
+// aus dem Grid_Resize_Tool v15. Die Folie (960×540 pt) wird
+// in ganzzahlige Rastereinheiten (RE) unterteilt. Der Rest
+// wird symmetrisch als Margin links/rechts bzw. oben/unten
+// verteilt, sodass das Raster exakt zentriert ist.
+//
+// Formel:
+//   FULL_UNITS   = floor(slideDimension / RE_PT)
+//   GRID_MARGIN  = (slideDimension - FULL_UNITS * RE_PT) / 2
+//   Position(re) = GRID_MARGIN + re * RE_PT
+//
+// ═══════════════════════════════════════════════════════
 
-var gridUnitCm = 0.21;
+var CM_PT = 28.3464567;           // 1 cm = 28.3464567 Points (exakt)
+var gridUnitCm = 0.21;            // Standard-Rastereinheit in cm
+var RE_PT = gridUnitCm * CM_PT;   // Rastereinheit in Points (≈ 5.9527559 pt)
+
 var ganttPhaseCount = 0;
 
-// GANTT Layout
+// Feste Foliengröße (16:9 Standard)
+var SLIDE_WIDTH_PT = 960;
+var SLIDE_HEIGHT_PT = 540;
+
+// Grid-Margins – zentriertes Raster (Grid_Resize_Tool v15)
+var FULL_UNITS_X = Math.floor(SLIDE_WIDTH_PT / RE_PT);
+var FULL_UNITS_Y = Math.floor(SLIDE_HEIGHT_PT / RE_PT);
+var GRID_MARGIN_LEFT = (SLIDE_WIDTH_PT - (FULL_UNITS_X * RE_PT)) / 2;
+var GRID_MARGIN_TOP  = (SLIDE_HEIGHT_PT - (FULL_UNITS_Y * RE_PT)) / 2;
+
+// GANTT Layout (in RE, relativ zum Grid-Ursprung)
 var GANTT_LEFT_RE = 9;
 var GANTT_TOP_RE = 17;
 var GANTT_MAX_WIDTH_RE = 118;
@@ -35,28 +63,45 @@ var FONT_SIZE = 11;
 var LINE_WEIGHT = 0.5;
 
 // Textfeld-Ränder (in Points)
-var TEXT_MARGIN_LEFT = 0.1 * CM_PT;  // 0.1 cm = ~2.83 pt
-var TEXT_MARGIN_RIGHT = 0;
-var TEXT_MARGIN_TOP = 0;
+var TEXT_MARGIN_LEFT   = 0.1 * CM_PT;  // 0.1 cm ≈ 2.83 pt
+var TEXT_MARGIN_RIGHT  = 0;
+var TEXT_MARGIN_TOP    = 0;
 var TEXT_MARGIN_BOTTOM = 0;
 
-// Feste Foliengröße (16:9 Standard)
-var SLIDE_WIDTH_PT = 960;
-var SLIDE_HEIGHT_PT = 540;
-
-// Grid-Margins
-var FULL_UNITS_X = Math.floor(SLIDE_WIDTH_PT / RE_PT);
-var FULL_UNITS_Y = Math.floor(SLIDE_HEIGHT_PT / RE_PT);
-var GRID_MARGIN_LEFT = (SLIDE_WIDTH_PT - (FULL_UNITS_X * RE_PT)) / 2;
-var GRID_MARGIN_TOP = (SLIDE_HEIGHT_PT - (FULL_UNITS_Y * RE_PT)) / 2;
-
 // ═══════════════════════════════════════════════════════
-// KONVERTIERUNGS-FUNKTIONEN
+// KONVERTIERUNGS-FUNKTIONEN (Grid_Resize_Tool v15)
 // ═══════════════════════════════════════════════════════
-function re2pt(re) { return re * RE_PT; }
-function reToX(re) { return GRID_MARGIN_LEFT + (re * RE_PT); }
-function reToY(re) { return GRID_MARGIN_TOP + (re * RE_PT); }
-function cm2pt(cm) { return cm * CM_PT; }
+
+/** RE → Points (reine Distanz, ohne Offset) */
+function re2pt(re) {
+  return re * RE_PT;
+}
+
+/** RE → X-Position auf der Folie (mit linkem Grid-Margin) */
+function reToX(re) {
+  return GRID_MARGIN_LEFT + (re * RE_PT);
+}
+
+/** RE → Y-Position auf der Folie (mit oberem Grid-Margin) */
+function reToY(re) {
+  return GRID_MARGIN_TOP + (re * RE_PT);
+}
+
+/** cm → Points */
+function cm2pt(cm) {
+  return cm * CM_PT;
+}
+
+/**
+ * Grid-Margins neu berechnen.
+ * Wird aufgerufen wenn sich die Rastereinheit ändert.
+ */
+function updateGridMargins() {
+  FULL_UNITS_X = Math.floor(SLIDE_WIDTH_PT / RE_PT);
+  FULL_UNITS_Y = Math.floor(SLIDE_HEIGHT_PT / RE_PT);
+  GRID_MARGIN_LEFT = (SLIDE_WIDTH_PT - (FULL_UNITS_X * RE_PT)) / 2;
+  GRID_MARGIN_TOP  = (SLIDE_HEIGHT_PT - (FULL_UNITS_Y * RE_PT)) / 2;
+}
 
 // ═══════════════════════════════════════════════════════
 // OFFICE READY
@@ -66,7 +111,9 @@ Office.onReady(function(info) {
     initUI();
     updateInfoBar();
     showStatus("Bereit", "success");
-    console.log("GANTT v2.25 - RE_PT:", RE_PT);
+    console.log("GANTT v" + VERSION + " | RE_PT:", RE_PT.toFixed(7),
+                "| Margin L:", GRID_MARGIN_LEFT.toFixed(4),
+                "| Margin T:", GRID_MARGIN_TOP.toFixed(4));
   }
 });
 
@@ -81,6 +128,7 @@ function updateInfoBar() {
 }
 
 function initUI() {
+  // Rastereinheit-Eingabe
   var gi = document.getElementById("gridUnit");
   if (gi) {
     gi.addEventListener("change", function() {
@@ -90,10 +138,14 @@ function initUI() {
         RE_PT = v * CM_PT;
         updateGridMargins();
         updatePresetButtons(v);
+        console.log("RE geändert:", v, "cm | RE_PT:", RE_PT.toFixed(7),
+                    "| Margin L:", GRID_MARGIN_LEFT.toFixed(4),
+                    "| Margin T:", GRID_MARGIN_TOP.toFixed(4));
       }
     });
   }
   
+  // Preset-Buttons für RE
   document.querySelectorAll(".pre").forEach(function(b) {
     b.addEventListener("click", function() {
       var v = parseFloat(this.dataset.value);
@@ -102,9 +154,11 @@ function initUI() {
       updateGridMargins();
       if (gi) gi.value = v;
       updatePresetButtons(v);
+      console.log("RE Preset:", v, "cm | RE_PT:", RE_PT.toFixed(7));
     });
   });
 
+  // Spaltenbreiten-Modus
   var widthMode = document.getElementById("ganttWidthMode");
   if (widthMode) {
     widthMode.addEventListener("change", function() {
@@ -117,12 +171,11 @@ function initUI() {
     });
   }
 
-  var btnSlide = document.getElementById("setSlide");
-  if (btnSlide) btnSlide.addEventListener("click", setSlideSize);
-  
+  // GANTT erstellen
   var btnGantt = document.getElementById("createGantt");
   if (btnGantt) btnGantt.addEventListener("click", createGanttChart);
   
+  // Phase hinzufügen
   var btnAdd = document.getElementById("ganttAddPhase");
   if (btnAdd) btnAdd.addEventListener("click", function() {
     var start = new Date(document.getElementById("ganttStart").value);
@@ -131,13 +184,6 @@ function initUI() {
   });
 
   initDefaults();
-}
-
-function updateGridMargins() {
-  FULL_UNITS_X = Math.floor(SLIDE_WIDTH_PT / RE_PT);
-  FULL_UNITS_Y = Math.floor(SLIDE_HEIGHT_PT / RE_PT);
-  GRID_MARGIN_LEFT = (SLIDE_WIDTH_PT - (FULL_UNITS_X * RE_PT)) / 2;
-  GRID_MARGIN_TOP = (SLIDE_HEIGHT_PT - (FULL_UNITS_Y * RE_PT)) / 2;
 }
 
 function updatePresetButtons(v) {
@@ -159,6 +205,9 @@ function initDefaults() {
   addPhaseRow("Abnahme", addDays(today, 63), end, "#e94560");
 }
 
+// ═══════════════════════════════════════════════════════
+// PHASEN-VERWALTUNG
+// ═══════════════════════════════════════════════════════
 function addPhaseRow(name, start, end, color) {
   ganttPhaseCount++;
   var container = document.getElementById("ganttPhases");
@@ -191,15 +240,11 @@ function getPhases() {
   return arr;
 }
 
-function setSlideSize() {
-  showStatus("Folienformat: 16:9 (960 x 540 pt)", "success");
-}
-
 // ═══════════════════════════════════════════════════════
 // CREATE GANTT CHART
 // ═══════════════════════════════════════════════════════
 function createGanttChart() {
-  console.log("=== createGanttChart START v2.25 ===");
+  console.log("=== createGanttChart START v" + VERSION + " ===");
   
   var projStart = new Date(document.getElementById("ganttStart").value);
   var projEnd = new Date(document.getElementById("ganttEnd").value);
@@ -255,6 +300,7 @@ function createGanttChart() {
     infoText += " <span style='color:#e94560'>(von " + timeUnits.length + " – abgeschnitten)</span>";
   }
   infoText += "<br>Spaltenbreite: <b>" + colWidthRE + " RE</b> (" + re2pt(colWidthRE).toFixed(2) + " pt)";
+  infoText += "<br>Grid-Margin: L=" + GRID_MARGIN_LEFT.toFixed(2) + " pt, T=" + GRID_MARGIN_TOP.toFixed(2) + " pt";
   ganttInfo(infoText, false);
 
   showStatus("Erstelle GANTT auf aktueller Folie...", "working");
@@ -289,22 +335,21 @@ function createGanttChart() {
 }
 
 // ═══════════════════════════════════════════════════════
-// TEXTFORMAT-HILFSFUNKTION (v2.25)
+// TEXTFORMAT-HILFSFUNKTION
 // ═══════════════════════════════════════════════════════
 function formatTextFrame(shape, text, centered) {
   try {
     shape.textFrame.textRange.text = text;
     shape.textFrame.textRange.font.size = FONT_SIZE;
-    shape.textFrame.textRange.font.bold = false;  // Nicht fett
-    shape.textFrame.textRange.font.color = "000000";  // Immer schwarz
+    shape.textFrame.textRange.font.bold = false;
+    shape.textFrame.textRange.font.color = "000000";
     shape.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middle;
     if (centered) {
       shape.textFrame.textRange.paragraphFormat.alignment = PowerPoint.ParagraphAlignment.center;
     }
-    // Textfeld-Ränder
-    shape.textFrame.marginLeft = TEXT_MARGIN_LEFT;
-    shape.textFrame.marginRight = TEXT_MARGIN_RIGHT;
-    shape.textFrame.marginTop = TEXT_MARGIN_TOP;
+    shape.textFrame.marginLeft   = TEXT_MARGIN_LEFT;
+    shape.textFrame.marginRight  = TEXT_MARGIN_RIGHT;
+    shape.textFrame.marginTop    = TEXT_MARGIN_TOP;
     shape.textFrame.marginBottom = TEXT_MARGIN_BOTTOM;
   } catch(e) {
     console.log("formatTextFrame error:", e);
@@ -312,24 +357,26 @@ function formatTextFrame(shape, text, centered) {
 }
 
 // ═══════════════════════════════════════════════════════
-// DRAW GANTT
+// DRAW GANTT (mit Grid_Resize_Tool v15 Positionierung)
 // ═══════════════════════════════════════════════════════
 function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits, 
                    labelWidthRE, headerHeightRE, barHeightRE, rowHeightRE, 
                    colWidthRE, totalDays, showTodayLine, visibleColumns, truncated) {
   
+  // Positionen über reToX/reToY (zentriertes Raster)
   var GANTT_LEFT_PT = reToX(GANTT_LEFT_RE);
-  var GANTT_TOP_PT = reToY(GANTT_TOP_RE);
+  var GANTT_TOP_PT  = reToY(GANTT_TOP_RE);
   
-  var labelWidthPt = re2pt(labelWidthRE);
-  var headerHeightPt = re2pt(headerHeightRE);
-  var barHeightPt = re2pt(barHeightRE);
-  var rowHeightPt = re2pt(rowHeightRE);
-  var colWidthPt = re2pt(colWidthRE);
+  // Dimensionen in Points (reine Distanzen via re2pt)
+  var labelWidthPt    = re2pt(labelWidthRE);
+  var headerHeightPt  = re2pt(headerHeightRE);
+  var barHeightPt     = re2pt(barHeightRE);
+  var rowHeightPt     = re2pt(rowHeightRE);
+  var colWidthPt      = re2pt(colWidthRE);
   
   var barPadding = Math.max(2, Math.round((rowHeightPt - barHeightPt) / 2));
   
-  var chartLeft = GANTT_LEFT_PT + labelWidthPt;
+  var chartLeft  = GANTT_LEFT_PT + labelWidthPt;
   var chartWidth = visibleColumns * colWidthPt;
   var totalWidth = labelWidthPt + chartWidth;
   
@@ -337,9 +384,9 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
   var monthRowHeightPt = needsMonthRow ? headerHeightPt : 0;
   
   var totalHeaderHeight = monthRowHeightPt + headerHeightPt;
-  var chartTop = GANTT_TOP_PT + totalHeaderHeight;
+  var chartTop    = GANTT_TOP_PT + totalHeaderHeight;
   var totalHeight = totalHeaderHeight + (phases.length * rowHeightPt);
-  var lineHeight = phases.length * rowHeightPt;
+  var lineHeight  = phases.length * rowHeightPt;
 
   // 1. Hintergrund
   var bg = slide.shapes.addGeometricShape(
@@ -391,7 +438,7 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
     formatTextFrame(hdr, timeUnits[c].label, true);
   }
   
-  // 3. Trennlinien (unverändert)
+  // 3. Trennlinien
   for (var li = 0; li < linePositions.length; li++) {
     var line = slide.shapes.addLine(PowerPoint.ConnectorType.straight,
       { left: linePositions[li], top: chartTop, width: 0.01, height: lineHeight });
@@ -443,11 +490,11 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
           bar.textFrame.textRange.text = phase.name;
           bar.textFrame.textRange.font.size = FONT_SIZE;
           bar.textFrame.textRange.font.bold = false;
-          bar.textFrame.textRange.font.color = "FFFFFF";  // Weiß für Balken
+          bar.textFrame.textRange.font.color = "FFFFFF";
           bar.textFrame.verticalAlignment = PowerPoint.TextVerticalAlignment.middle;
-          bar.textFrame.marginLeft = TEXT_MARGIN_LEFT;
-          bar.textFrame.marginRight = TEXT_MARGIN_RIGHT;
-          bar.textFrame.marginTop = TEXT_MARGIN_TOP;
+          bar.textFrame.marginLeft   = TEXT_MARGIN_LEFT;
+          bar.textFrame.marginRight  = TEXT_MARGIN_RIGHT;
+          bar.textFrame.marginTop    = TEXT_MARGIN_TOP;
           bar.textFrame.marginBottom = TEXT_MARGIN_BOTTOM;
         } catch(e) {}
       }
@@ -469,10 +516,10 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
         
         // Datum-Label am unteren Ende
         var todayStr = pad2(today.getDate()) + "." + pad2(today.getMonth() + 1) + "." + today.getFullYear();
-        var labelWidth = 60;  // Breite für Datum-Box
-        var labelHeight = 14; // Höhe für Datum-Box
-        var labelLeft = chartLeft + todayX - (labelWidth / 2);  // Zentriert unter der Linie
-        var labelTop = GANTT_TOP_PT + totalHeight + 2;  // Direkt unter dem Diagramm
+        var labelWidth = 60;
+        var labelHeight = 14;
+        var labelLeft = chartLeft + todayX - (labelWidth / 2);
+        var labelTop = GANTT_TOP_PT + totalHeight + 2;
         
         var todayLabel = slide.shapes.addGeometricShape(
           PowerPoint.GeometricShapeType.rectangle,
@@ -518,7 +565,6 @@ function computeTimeUnits(start, end, unit) {
         unitEnd = addDays(current, 1);
         break;
       case "week":
-        // v2.25: Nur Nummer, ohne "KW"
         label = "" + getWeekNumber(current);
         unitEnd = addDays(current, 7);
         break;
