@@ -739,16 +739,16 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
     }
   }
   
-  // 4. Vertikale Trennlinien (echte Linien, keine Rechtecke)
-  for (var v = 1; v < visibleColumns; v++) {
-    var lineX = chartLeft + (v * colWidthPt);
-    var vLine = slide.shapes.addLine(
-      PowerPoint.ConnectorType.straight,
-      { left: lineX, top: chartTop, width: 0.01, height: lineHeight }
+  // 4. Spalten-Rechtecke (transparent mit Rahmen, je Zeiteinheit)
+  for (var v = 0; v < visibleColumns; v++) {
+    var colX = chartLeft + (v * colWidthPt);
+    var colRect = slide.shapes.addGeometricShape(
+      PowerPoint.GeometricShapeType.rectangle,
+      { left: colX, top: chartTop, width: colWidthPt, height: lineHeight }
     );
-    vLine.lineFormat.color = "C0C0C0";
-    vLine.lineFormat.weight = 0.5;
-    vLine.lineFormat.dashStyle = PowerPoint.ShapeLineDashStyle.solid;
+    colRect.fill.transparency = 1;
+    colRect.lineFormat.color = "C0C0C0";
+    colRect.lineFormat.weight = LINE_WEIGHT;
   }
   
   // 5. Heute-Linie
