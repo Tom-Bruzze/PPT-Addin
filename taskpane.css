@@ -1,5 +1,5 @@
 /*
- Droege GANTT Generator – taskpane.css v20.0
+ Droege GANTT Generator – taskpane.css v2.11
  DROEGE GROUP · 2026
 */
 
@@ -273,3 +273,38 @@ input[type="color"] {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ═══════════════════════════════════════════════════════
+   v21: Bildschirmformat-Anzeige
+   ═══════════════════════════════════════════════════════ */
+.format-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.format-label {
+  font-weight: 600;
+  font-size: 13px;
+  color: #1a1a2e;
+  flex: 1;
+}
+.btn-small {
+  padding: 4px 10px;
+  font-size: 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #f8f8f8;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-small:hover {
+  background: #e8e8e8;
+}
+.offset-info {
+  margin-top: 2px;
+}
+.offset-info .hint {
+  font-size: 11px;
+  color: #888;
+}
