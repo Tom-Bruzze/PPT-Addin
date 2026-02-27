@@ -118,7 +118,7 @@ var GRID_OFFSET_Y = 0;
 var DETECTED_FORMAT = "Breitbild";
 
 // GANTT Layout (in RE, relativ zum Grid-Ursprung)
-var GANTT_LEFT_RE = 9;
+var GANTT_LEFT_RE = 7;
 var GANTT_TOP_RE = 17;
 var GANTT_MAX_WIDTH_RE = 118;
 
@@ -533,7 +533,11 @@ function createGanttChart() {
   var truncated = false;
 
   if (widthMode === "auto") {
-    var availableRE = GANTT_MAX_WIDTH_RE - labelWidthRE;
+    // Auto: Start bei RE 7, rechts 6 RE Abstand zum Rand
+    var slideWidthRE = Math.floor(SLIDE_WIDTH_PT / RE_PT);
+    var autoMaxRE = slideWidthRE - GANTT_LEFT_RE - 6;  // 6 RE rechter Rand
+    var availableRE = autoMaxRE - labelWidthRE;
+    if (availableRE < 1) availableRE = 1;
     if (availableRE < timeUnits.length) {
       visibleColumns = availableRE;
       truncated = true;
@@ -544,9 +548,11 @@ function createGanttChart() {
     }
   } else {
     colWidthRE = parseInt(document.getElementById("ganttColW").value) || 3;
+    var slideWidthRE_m = Math.floor(SLIDE_WIDTH_PT / RE_PT);
+    var manualMaxRE = slideWidthRE_m - GANTT_LEFT_RE - 6;
     var neededRE = labelWidthRE + (timeUnits.length * colWidthRE);
-    if (neededRE > GANTT_MAX_WIDTH_RE) {
-      visibleColumns = Math.floor((GANTT_MAX_WIDTH_RE - labelWidthRE) / colWidthRE);
+    if (neededRE > manualMaxRE) {
+      visibleColumns = Math.floor((manualMaxRE - labelWidthRE) / colWidthRE);
       truncated = true;
     }
   }
@@ -733,15 +739,16 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
     }
   }
   
-  // 4. Vertikale Trennlinien
+  // 4. Vertikale Trennlinien (echte Linien, keine Rechtecke)
   for (var v = 1; v < visibleColumns; v++) {
     var lineX = chartLeft + (v * colWidthPt);
-    var vLine = slide.shapes.addGeometricShape(
-      PowerPoint.GeometricShapeType.rectangle,
-      { left: lineX, top: chartTop, width: 0.5, height: lineHeight }
+    var vLine = slide.shapes.addLine(
+      PowerPoint.ConnectorType.straight,
+      { left: lineX, top: chartTop, width: 0, height: lineHeight }
     );
-    vLine.fill.setSolidColor("C0C0C0");
-    vLine.lineFormat.visible = false;
+    vLine.lineFormat.color = "C0C0C0";
+    vLine.lineFormat.weight = 0.5;
+    vLine.lineFormat.dashStyle = PowerPoint.ShapeLineDashStyle.solid;
   }
   
   // 5. Heute-Linie
@@ -758,12 +765,13 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
       // Heute-Linie auf Raster snappen
       todayX = snapToGrid(todayX, GRID_OFFSET_X);
       
-      var todayLine = slide.shapes.addGeometricShape(
-        PowerPoint.GeometricShapeType.rectangle,
-        { left: todayX, top: GANTT_TOP_PT, width: 1, height: totalHeight + re2pt(2) }
+      var todayLine = slide.shapes.addLine(
+        PowerPoint.ConnectorType.straight,
+        { left: todayX, top: GANTT_TOP_PT, width: 0, height: totalHeight + re2pt(2) }
       );
-      todayLine.fill.setSolidColor("FF0000");
-      todayLine.lineFormat.visible = false;
+      todayLine.lineFormat.color = "FF0000";
+      todayLine.lineFormat.weight = 1.5;
+      todayLine.lineFormat.dashStyle = PowerPoint.ShapeLineDashStyle.solid;
       
       // Datum-Label
       var todayLabel = slide.shapes.addGeometricShape(

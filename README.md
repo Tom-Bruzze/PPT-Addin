@@ -1,26 +1,30 @@
-# GANTT Generator – DROEGE GROUP v21.1
+# GANTT Generator – DROEGE GROUP v21.2
 
-## Änderungen v21.1 (Bugfix-Release)
-- **KRITISCH BEHOBEN:** 13 fehlende CSS-Klassen ergänzt
-  - `.btn-primary` (GANTT-Erstellen-Button war unsichtbar!)
-  - `.btn-add` (Phase-Hinzufügen-Button)
-  - `.status`, `.status.info/success/warning/error` (Statusanzeige)
-  - `.param-grid` (Layout-Parameter-Raster)
-  - `.unit-row`, `.width-mode-row` (Dropdowns)
-  - `.date-field` (Datums-Eingaben)
-  - `.check-row` (Checkbox Heute-Linie)
-  - `.phase-name`, `.phase-start`, `.phase-end`, `.phase-color`, `.phase-del` (Phasen-Zeilen)
-  - `.gantt-phase` (Phasen-Container)
-- CSS komplett neu aufgebaut: 0 fehlende Klassen
-- Alle Element-IDs zwischen HTML ↔ JS verifiziert ✅
-- Event-Listener-Kette vollständig geprüft ✅
+## Änderungen v21.2
+### 1. Auto-Verteilung: Dynamische Positionierung
+- **Start links:** Rastereinheit 7 (vorher 9)
+- **Start oben:** Rastereinheit 17 (unverändert)
+- **Breite:** Dynamisch berechnet → Folienbreite in RE - 7 (links) - 6 (rechts)
+- Funktioniert für alle Bildschirmformate (Breitbild, Standard, A4 etc.)
+- Rechter Rand: immer mindestens 6 RE Platz zum Folienrand
+
+### 2. Echte Linien statt Rechtecke
+- **Vertikale Trennlinien** werden jetzt als echte PowerPoint-Linien (`addLine`) erzeugt
+- **Heute-Linie** ebenfalls als echte Linie
+- Vorteil: Linien lassen sich nachträglich leicht in Länge/Position anpassen
+- Farbe Trennlinien: #C0C0C0, Stärke: 0.5 pt
+- Farbe Heute-Linie: #FF0000, Stärke: 1.5 pt
+
+### 3. Phasendefinition einzeilig
+- Felder Phase | Start | Ende | Farbe | × jetzt in einer Zeile
+- Kompaktere Darstellung, kein Umbruch mehr
 
 ## Dateien
 | Datei | Beschreibung |
 |-------|-------------|
 | `taskpane.html` | Benutzeroberfläche |
-| `taskpane.js` | Kernlogik (v21) |
-| `taskpane.css` | Styling (v21.1 – repariert) |
+| `taskpane.js` | Kernlogik (v21.2) |
+| `taskpane.css` | Styling (v21.2) |
 | `manifest-PPT-Addin.xml` | Office Add-in Manifest |
 | `README.md` | Diese Datei |
 
@@ -29,9 +33,15 @@
 2. In PowerPoint: Einfügen → Add-ins → manifest-PPT-Addin.xml laden
 3. Add-in öffnet sich im Taskpane
 
-## Bedienung
-1. **Rastereinheit** wählen (Standard: 0,2117 cm)
-2. **Bildschirmformat** wird automatisch erkannt
-3. **Zeitraum** festlegen (Start/Ende/Einheit)
-4. **Phasen** hinzufügen (+ Phase Button)
-5. **GANTT erstellen** klicken → Diagramm wird auf aktueller Folie eingefügt
+## Layout-Logik (Auto-Verteilung)
+```
+┌─ Folie ────────────────────────────────────────────────┐
+│                                                         │
+│  7 RE  ┌─ GANTT ──────────────────────┐  6 RE          │
+│ ←────→ │                              │ ←────→         │
+│        │  Labels │ Spalten...         │                 │
+│ 17 RE  │        │                     │                 │
+│ ↕      │        │                     │                 │
+│        └────────────────────────────────┘                │
+└─────────────────────────────────────────────────────────┘
+```

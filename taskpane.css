@@ -262,40 +262,43 @@ body {
 .gantt-phase {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 5px;
+  flex-wrap: nowrap;
 }
 .phase-name {
-  flex: 1;
-  min-width: 80px;
-  padding: 5px 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  font-size: 13px;
-}
-.phase-start, .phase-end {
-  width: 120px;
-  padding: 5px 6px;
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 4px 6px;
   border: 1px solid #ccc;
   border-radius: 4px;
   font-size: 12px;
 }
+.phase-start, .phase-end {
+  flex: 0 0 auto;
+  width: 105px;
+  padding: 4px 4px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 11px;
+}
 .phase-color {
-  width: 32px;
-  height: 28px;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 26px;
   border: 1px solid #ccc;
   border-radius: 4px;
   padding: 1px;
   cursor: pointer;
 }
 .phase-del {
-  width: 28px;
-  height: 28px;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 26px;
   border: none;
   background: #f0f0f0;
   border-radius: 4px;
-  font-size: 16px;
+  font-size: 14px;
   color: #999;
   cursor: pointer;
   display: flex;
