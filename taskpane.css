@@ -1,310 +1,391 @@
-/*
- Droege GANTT Generator – taskpane.css v2.11
- DROEGE GROUP · 2026
-*/
-
-:root {
-  --bg: #f8f9fa;
-  --card: #ffffff;
-  --border: #e0e0e0;
-  --text: #1a1a2e;
-  --text-muted: #6c757d;
-  --primary: #0f3460;
-  --accent: #e94560;
-  --success: #27ae60;
-  --warning: #f39c12;
-  --error: #e74c3c;
-  --radius: 8px;
-  --shadow: 0 2px 8px rgba(0,0,0,0.08);
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  font-size: 13px;
-  background: var(--bg);
-  color: var(--text);
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-}
-
-.header {
-  background: var(--primary);
-  color: #fff;
-  padding: 12px 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.logo { display: flex; align-items: center; gap: 10px; }
-.logo-text { display: flex; flex-direction: column; }
-.logo-title { font-weight: 600; font-size: 14px; }
-.logo-sub { font-size: 10px; opacity: 0.7; letter-spacing: 1px; }
-
-.info-bar { display: flex; gap: 12px; font-size: 10px; opacity: 0.8; }
-.info-bar span { background: rgba(255,255,255,0.15); padding: 3px 8px; border-radius: 4px; }
-
-.main {
-  flex: 1;
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  overflow-y: auto;
-}
-
-.card {
-  background: var(--card);
-  border-radius: var(--radius);
-  padding: 16px;
-  box-shadow: var(--shadow);
-  border: 1px solid var(--border);
-}
-
-.card h2 {
-  font-size: 13px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  color: var(--primary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.hint { font-size: 11px; color: var(--text-muted); margin-bottom: 12px; }
-.hint-inline { font-size: 10px; color: var(--text-muted); margin-left: 8px; }
-
-.form-row { margin-bottom: 12px; }
-.form-row label { display: block; font-size: 11px; font-weight: 500; margin-bottom: 4px; color: var(--text-muted); }
-.form-row.inline { display: flex; gap: 12px; }
-.form-row.inline > div { flex: 1; }
-
-input[type="text"], input[type="number"], input[type="date"], select {
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  font-size: 13px;
-  font-family: inherit;
-}
-
-input:focus, select:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(15, 52, 96, 0.1);
-}
-
-input[type="color"] {
-  width: 36px;
-  height: 32px;
-  padding: 2px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-/* Checkbox Styling */
-.checkbox-row {
-  margin-bottom: 12px;
-}
-
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  user-select: none;
-  padding: 8px 10px;
-  background: var(--bg);
-  border-radius: 6px;
-  border: 1px solid var(--border);
-  transition: border-color 0.2s;
-}
-
-.checkbox-label:hover {
-  border-color: var(--primary);
-}
-
-.checkbox-label input[type="checkbox"] {
-  display: none;
-}
-
-.checkmark {
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--border);
-  border-radius: 4px;
-  margin-right: 10px;
-  position: relative;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-
-.checkbox-label input[type="checkbox"]:checked + .checkmark {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
-.checkbox-label input[type="checkbox"]:checked + .checkmark::after {
-  content: "";
-  position: absolute;
-  left: 5px;
-  top: 1px;
-  width: 4px;
-  height: 9px;
-  border: solid white;
-  border-width: 0 2px 2px 0;
-  transform: rotate(45deg);
-}
-
-.checkbox-text {
-  font-size: 12px;
-  color: var(--text);
-}
-
-.today-indicator {
-  color: var(--accent);
-  font-weight: 600;
-}
-
-.re-row { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-.re-row input { width: 80px; text-align: center; }
-.unit { font-size: 12px; color: var(--text-muted); }
-
-.presets { display: flex; gap: 6px; }
-.pre {
-  flex: 1;
-  padding: 6px 8px;
-  border: 1px solid var(--border);
-  background: var(--bg);
-  border-radius: 6px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.pre:hover { border-color: var(--primary); }
-.pre.active { background: var(--primary); color: #fff; border-color: var(--primary); }
-
-.date-row { display: flex; align-items: center; gap: 8px; }
-.date-row input { flex: 1; }
-.date-row span { color: var(--text-muted); }
-
-.btn {
-  padding: 10px 16px;
-  border: none;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  font-family: inherit;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.btn.full { width: 100%; }
-.btn.small { padding: 6px 12px; font-size: 12px; }
-.btn.primary { background: var(--primary); color: #fff; }
-.btn.primary:hover { background: #0a2647; }
-.btn.accent { background: var(--accent); color: #fff; }
-.btn.accent:hover { background: #c73e54; }
-
-.phases-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.phases-header label { font-size: 11px; font-weight: 500; color: var(--text-muted); }
-
-.gantt-phases {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  max-height: 200px;
-  overflow-y: auto;
-  margin-bottom: 12px;
-}
-
-.gantt-phase {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  padding: 8px;
-  background: var(--bg);
-  border-radius: 6px;
-  border: 1px solid var(--border);
-}
-
-.gantt-phase input[type="text"] { flex: 2; min-width: 0; }
-.gantt-phase input[type="date"] { flex: 1.5; min-width: 0; font-size: 11px; padding: 6px; }
-.gantt-phase input[type="color"] { flex-shrink: 0; }
-
-.gantt-del {
-  width: 28px;
-  height: 28px;
-  border: none;
-  background: var(--error);
-  color: #fff;
-  border-radius: 6px;
-  font-size: 16px;
-  cursor: pointer;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background 0.2s;
-}
-.gantt-del:hover { background: #c0392b; }
-
-.gantt-info {
-  font-size: 11px;
-  padding: 8px 10px;
-  background: #e8f4fd;
-  border-radius: 6px;
-  margin-bottom: 12px;
-  color: var(--primary);
-  line-height: 1.4;
-}
-.gantt-info.err { background: #fdecea; color: var(--error); }
-.gantt-info:empty { display: none; }
-
-.footer { padding: 10px 16px; background: var(--card); border-top: 1px solid var(--border); }
-
-.sts { font-size: 12px; padding: 8px 12px; border-radius: 6px; text-align: center; }
-.sts.info { background: #e8f4fd; color: var(--primary); }
-.sts.success { background: #d4edda; color: var(--success); }
-.sts.warning { background: #fff3cd; color: #856404; }
-.sts.error { background: #f8d7da; color: var(--error); }
-
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
-
 /* ═══════════════════════════════════════════════════════
-   v21: Bildschirmformat-Anzeige
+   GANTT Generator – DROEGE GROUP v21.1
+   Vollständiges CSS (alle HTML/JS-Klassen abgedeckt)
    ═══════════════════════════════════════════════════════ */
+
+/* RESET & BODY */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 13px;
+  background: #f5f5f5;
+  color: #1a1a2e;
+  line-height: 1.5;
+}
+
+/* ── HEADER ──────────────────────────────────────────── */
+.header {
+  background: #1a1a2e;
+  color: #fff;
+  padding: 12px 16px 8px;
+}
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.logo-text { display: flex; flex-direction: column; }
+.logo-title { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
+.logo-sub { font-size: 10px; color: #aaa; letter-spacing: 2px; text-transform: uppercase; }
+
+.info-bar {
+  display: flex;
+  gap: 12px;
+  font-size: 10px;
+  color: #888;
+}
+.info-bar span { background: rgba(255,255,255,0.08); padding: 2px 8px; border-radius: 3px; }
+
+/* ── MAIN ────────────────────────────────────────────── */
+.main {
+  padding: 10px 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ── CARD ────────────────────────────────────────────── */
+.card {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.card h2 {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #1a1a2e;
+  margin-bottom: 10px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid #e94560;
+}
+
+/* ── HINTS ───────────────────────────────────────────── */
+.hint {
+  font-size: 11px;
+  color: #888;
+  margin-top: 4px;
+}
+.hint-inline {
+  font-size: 11px;
+  color: #888;
+  display: inline;
+}
+
+/* ── RE ROW ──────────────────────────────────────────── */
+.re-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+.re-row input {
+  width: 110px;
+  padding: 5px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.unit { font-size: 12px; color: #666; }
+
+/* ── PRESETS ─────────────────────────────────────────── */
+.presets {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.pre {
+  padding: 4px 10px;
+  font-size: 12px;
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.pre:hover { background: #e0e0e0; }
+.pre.active {
+  background: #1a1a2e;
+  color: #fff;
+  border-color: #1a1a2e;
+}
+
+/* ── FORMAT INFO (Bildschirmformat) ──────────────────── */
 .format-info {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
+  gap: 10px;
+  margin-bottom: 6px;
 }
 .format-label {
-  font-weight: 600;
   font-size: 13px;
+  font-weight: 600;
   color: #1a1a2e;
-  flex: 1;
 }
+.offset-info { margin-top: 4px; }
+.offset-info .hint { margin-top: 0; }
+
+/* ── BTN-SMALL ───────────────────────────────────────── */
 .btn-small {
   padding: 4px 10px;
-  font-size: 12px;
+  font-size: 11px;
+  background: #f0f0f0;
   border: 1px solid #ccc;
   border-radius: 4px;
-  background: #f8f8f8;
   cursor: pointer;
   transition: background 0.15s;
 }
-.btn-small:hover {
-  background: #e8e8e8;
+.btn-small:hover { background: #ddd; }
+
+/* ── DATE ROW ────────────────────────────────────────── */
+.date-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
 }
-.offset-info {
-  margin-top: 2px;
+
+/* ── DATE FIELD ──────────────────────────────────────── */
+.date-field {
+  flex: 1;
 }
-.offset-info .hint {
+.date-field label {
+  display: block;
   font-size: 11px;
   color: #888;
+  margin-bottom: 3px;
+}
+.date-field input {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+/* ── UNIT ROW ────────────────────────────────────────── */
+.unit-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.unit-row label {
+  font-size: 12px;
+  color: #555;
+  min-width: 50px;
+}
+.unit-row select {
+  flex: 1;
+  padding: 5px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+/* ── PARAM GRID (Layout-Parameter) ───────────────────── */
+.param-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.param-grid label {
+  font-size: 12px;
+  color: #555;
+}
+.param-grid input {
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+/* ── WIDTH MODE ROW ──────────────────────────────────── */
+.width-mode-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+.width-mode-row label {
+  font-size: 12px;
+  color: #555;
+  min-width: 90px;
+}
+.width-mode-row select {
+  flex: 1;
+  padding: 5px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+/* ── FORM ROW (generisch) ────────────────────────────── */
+.form-row {
+  margin-bottom: 8px;
+}
+.form-row label {
+  display: block;
+  font-size: 12px;
+  color: #555;
+  margin-bottom: 3px;
+}
+.form-row.inline {
+  display: flex;
+  gap: 10px;
+}
+.form-row.inline > div { flex: 1; }
+
+/* ── CHECKBOX / CHECK-ROW ────────────────────────────── */
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.check-row input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #1a1a2e;
+  cursor: pointer;
+}
+
+/* ── PHASEN ──────────────────────────────────────────── */
+.gantt-phase {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.phase-name {
+  flex: 1;
+  min-width: 80px;
+  padding: 5px 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.phase-start, .phase-end {
+  width: 120px;
+  padding: 5px 6px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.phase-color {
+  width: 32px;
+  height: 28px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 1px;
+  cursor: pointer;
+}
+.phase-del {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: #f0f0f0;
+  border-radius: 4px;
+  font-size: 16px;
+  color: #999;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+.phase-del:hover {
+  background: #e94560;
+  color: #fff;
+}
+
+/* ── BTN-ADD (Phase hinzufügen) ──────────────────────── */
+.btn-add {
+  display: inline-block;
+  padding: 6px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a2e;
+  background: #f8f8f8;
+  border: 1px dashed #aaa;
+  border-radius: 5px;
+  cursor: pointer;
+  margin-top: 6px;
+  transition: all 0.15s;
+}
+.btn-add:hover {
+  background: #e0e0e0;
+  border-color: #888;
+}
+
+/* ══════════════════════════════════════════════════════
+   ★★★ BTN-PRIMARY (GANTT ERSTELLEN) ★★★
+   ══════════════════════════════════════════════════════ */
+.btn-primary {
+  display: block;
+  width: 100%;
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #fff;
+  background: #1a1a2e;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+.btn-primary:hover {
+  background: #e94560;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(233, 69, 96, 0.3);
+}
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* ── STATUS ──────────────────────────────────────────── */
+.status {
+  padding: 8px 12px;
+  font-size: 12px;
+  border-radius: 5px;
+  text-align: center;
+  background: #f0f0f0;
+  color: #555;
+  transition: all 0.2s;
+}
+.status.info    { background: #e8f4fd; color: #1a5276; }
+.status.success { background: #d5f5e3; color: #1e8449; }
+.status.warning { background: #fef9e7; color: #9a7d0a; }
+.status.error   { background: #fadbd8; color: #922b21; }
+
+/* ── GANTT INFO (Vorschau-Info) ──────────────────────── */
+.gantt-info {
+  font-size: 11px;
+  color: #666;
+  padding: 6px 8px;
+  background: #f8f8f8;
+  border-radius: 4px;
+  margin-top: 6px;
+}
+.gantt-info.err { color: #c0392b; background: #fdecea; }
+.gantt-info:empty { display: none; }
+
+/* ── FOOTER ──────────────────────────────────────────── */
+.footer {
+  text-align: center;
+  font-size: 10px;
+  color: #aaa;
+  padding: 10px;
 }
