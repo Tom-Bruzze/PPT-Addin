@@ -1,6 +1,6 @@
 /*
  ═══════════════════════════════════════════════════════
- Droege GANTT Generator  –  taskpane.js  v21.0
+ Droege GANTT Generator  –  taskpane.js  v21.3
 
  ÄNDERUNGEN v21.0 (basierend auf v20.0):
   - FORMAT_TABLE aus Grid_Resize_Tool v15 integriert
@@ -744,7 +744,7 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
     var lineX = chartLeft + (v * colWidthPt);
     var vLine = slide.shapes.addLine(
       PowerPoint.ConnectorType.straight,
-      { left: lineX, top: chartTop, width: 0, height: lineHeight }
+      { left: lineX, top: chartTop, width: 0.01, height: lineHeight }
     );
     vLine.lineFormat.color = "C0C0C0";
     vLine.lineFormat.weight = 0.5;
@@ -767,7 +767,7 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
       
       var todayLine = slide.shapes.addLine(
         PowerPoint.ConnectorType.straight,
-        { left: todayX, top: GANTT_TOP_PT, width: 0, height: totalHeight + re2pt(2) }
+        { left: todayX, top: GANTT_TOP_PT, width: 0.01, height: totalHeight + re2pt(2) }
       );
       todayLine.lineFormat.color = "FF0000";
       todayLine.lineFormat.weight = 1.5;

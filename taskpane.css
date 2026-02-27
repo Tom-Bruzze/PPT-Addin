@@ -276,7 +276,7 @@ body {
 }
 .phase-start, .phase-end {
   flex: 0 0 auto;
-  width: 105px;
+  width: 86px;
   padding: 4px 4px;
   border: 1px solid #ccc;
   border-radius: 4px;
