@@ -1,6 +1,11 @@
 /*
  ═══════════════════════════════════════════════════════
- Droege GANTT Generator  –  taskpane.js  v21.0
+ Droege GANTT Generator  –  taskpane.js  v21.3
+
+ ÄNDERUNGEN v21.3 (basierend auf v21.2):
+  - Vertikale Trennlinien: addGeometricShape → addLine (skalierungssicher)
+  - Heute-Linie: addGeometricShape → addLine (skalierungssicher)
+  - width: 0.01 verhindert Auto-Routing/Schiefwerden
 
  ÄNDERUNGEN v21.0 (basierend auf v20.0):
   - FORMAT_TABLE aus Grid_Resize_Tool v15 integriert
@@ -118,7 +123,7 @@ var GRID_OFFSET_Y = 0;
 var DETECTED_FORMAT = "Breitbild";
 
 // GANTT Layout (in RE, relativ zum Grid-Ursprung)
-var GANTT_LEFT_RE = 7;
+var GANTT_LEFT_RE = 9;
 var GANTT_TOP_RE = 17;
 var GANTT_MAX_WIDTH_RE = 118;
 
@@ -533,11 +538,7 @@ function createGanttChart() {
   var truncated = false;
 
   if (widthMode === "auto") {
-    // Auto: Start bei RE 7, rechts 6 RE Abstand zum Rand
-    var slideWidthRE = Math.floor(SLIDE_WIDTH_PT / RE_PT);
-    var autoMaxRE = slideWidthRE - GANTT_LEFT_RE - 6;  // 6 RE rechter Rand
-    var availableRE = autoMaxRE - labelWidthRE;
-    if (availableRE < 1) availableRE = 1;
+    var availableRE = GANTT_MAX_WIDTH_RE - labelWidthRE;
     if (availableRE < timeUnits.length) {
       visibleColumns = availableRE;
       truncated = true;
@@ -548,11 +549,9 @@ function createGanttChart() {
     }
   } else {
     colWidthRE = parseInt(document.getElementById("ganttColW").value) || 3;
-    var slideWidthRE_m = Math.floor(SLIDE_WIDTH_PT / RE_PT);
-    var manualMaxRE = slideWidthRE_m - GANTT_LEFT_RE - 6;
     var neededRE = labelWidthRE + (timeUnits.length * colWidthRE);
-    if (neededRE > manualMaxRE) {
-      visibleColumns = Math.floor((manualMaxRE - labelWidthRE) / colWidthRE);
+    if (neededRE > GANTT_MAX_WIDTH_RE) {
+      visibleColumns = Math.floor((GANTT_MAX_WIDTH_RE - labelWidthRE) / colWidthRE);
       truncated = true;
     }
   }
@@ -739,12 +738,12 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
     }
   }
   
-  // 4. Vertikale Trennlinien (echte Linien, keine Rechtecke)
+  // 4. Vertikale Trennlinien (echte Linien – skalierungssicher)
   for (var v = 1; v < visibleColumns; v++) {
     var lineX = chartLeft + (v * colWidthPt);
     var vLine = slide.shapes.addLine(
       PowerPoint.ConnectorType.straight,
-      { left: lineX, top: chartTop, width: 0, height: lineHeight }
+      { left: lineX, top: chartTop, width: 0.01, height: lineHeight }
     );
     vLine.lineFormat.color = "C0C0C0";
     vLine.lineFormat.weight = 0.5;
@@ -767,7 +766,7 @@ function drawGantt(ctx, slide, projStart, projEnd, unit, phases, timeUnits,
       
       var todayLine = slide.shapes.addLine(
         PowerPoint.ConnectorType.straight,
-        { left: todayX, top: GANTT_TOP_PT, width: 0, height: totalHeight + re2pt(2) }
+        { left: todayX, top: GANTT_TOP_PT, width: 0.01, height: totalHeight + re2pt(2) }
       );
       todayLine.lineFormat.color = "FF0000";
       todayLine.lineFormat.weight = 1.5;

@@ -1,6 +1,6 @@
-# GANTT Generator – DROEGE GROUP v21.2
+# GANTT Generator – DROEGE GROUP v21.3
 
-## Änderungen v21.2
+## Änderungen v21.3
 ### 1. Auto-Verteilung: Dynamische Positionierung
 - **Start links:** Rastereinheit 7 (vorher 9)
 - **Start oben:** Rastereinheit 17 (unverändert)
@@ -23,8 +23,8 @@
 | Datei | Beschreibung |
 |-------|-------------|
 | `taskpane.html` | Benutzeroberfläche |
-| `taskpane.js` | Kernlogik (v21.2) |
-| `taskpane.css` | Styling (v21.2) |
+| `taskpane.js` | Kernlogik (v21.3) |
+| `taskpane.css` | Styling (v21.3) |
 | `manifest-PPT-Addin.xml` | Office Add-in Manifest |
 | `README.md` | Diese Datei |
 
@@ -45,3 +45,10 @@
 │        └────────────────────────────────┘                │
 └─────────────────────────────────────────────────────────┘
 ```
+
+
+## v21.3 Änderungen
+- **Vertikale Trennlinien:** `addGeometricShape` → `addLine` (skalierungssicher beim Breiterziehen)
+- **Heute-Linie:** `addGeometricShape` → `addLine` (gleiche Verbesserung)
+- **`width: 0.01`** verhindert Auto-Routing und Schiefwerden der Linien
+- **Datumsfelder** bei Phasen 0,5 cm schmaler (flex: 1.5 → 1)

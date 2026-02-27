@@ -1,134 +1,148 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Droege GANTT Generator</title>
-  <link rel="stylesheet" href="taskpane.css">
-  <script src="https://appsforoffice.microsoft.com/lib/1.1/hosted/office.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <title>Grid Resize Tool</title>
+    <link rel="stylesheet" href="taskpane.css">
+    <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
 </head>
 <body>
-  <header class="header">
-    <div class="logo">
-      <svg viewBox="0 0 40 40" width="32" height="32">
-        <rect x="2" y="2" width="36" height="36" rx="4" fill="#1a1a2e"/>
-        <rect x="6" y="10" width="20" height="4" rx="1" fill="#e94560"/>
-        <rect x="10" y="18" width="24" height="4" rx="1" fill="#0f3460"/>
-        <rect x="8" y="26" width="18" height="4" rx="1" fill="#16213e"/>
-      </svg>
-      <div class="logo-text">
-        <span class="logo-title">GANTT Generator</span>
-        <span class="logo-sub">DROEGE GROUP</span>
-      </div>
-    </div>
-    <div class="info-bar">
-      <span id="infoDateTime">--</span>
-      <span id="infoVersion">v21.2</span>
-      <span id="infoApi">API 1.10</span>
-    </div>
-  </header>
+<div class="app">
 
-  <main class="main">
+    <!-- HEADER -->
+    <div class="hdr">
+        <span class="logo">&#9638;</span>
+        <div>
+            <div class="title"><b>Grid Resize by Droege Group</b></div>
+            <div class="build">V12 · Build 26.02.2026 · API 1.10</div>
+        </div>
+    </div>
+
     <!-- Rastereinheit -->
-    <section class="card">
-      <h2>Rastereinheit (RE)</h2>
-      <div class="re-row">
-        <input type="number" id="gridUnit" value="0.2117" min="0.05" max="5" step="0.0001">
-        <span class="unit">cm</span>
-      </div>
-      <div class="presets">
+    <div class="sec re-sec">
+        <span class="lbl">RE</span>
         <button class="pre active" data-value="0.2117">0,2117</button>
         <button class="pre" data-value="0.4233">0,4233</button>
         <button class="pre" data-value="0.6350">0,6350</button>
         <button class="pre" data-value="2.1167">2,1167</button>
-      </div>
-    </section>
+        <input id="gridUnit" class="re-in" type="number" step="0.0001" min="0.01" value="0.2117"> <span class="lbl">cm</span>
+    </div>
 
-    <!-- Bildschirmformat (NEU in v21) -->
-    <section class="card">
-      <h2>Bildschirmformat</h2>
-      <div class="format-info">
-        <span id="detectedFormat" class="format-label">Wird erkannt...</span>
-        <button id="detectFormat" class="btn-small">🔎 Erkennen</button>
-      </div>
-      <div class="offset-info">
-        <span id="gridOffsetInfo" class="hint">Offset X: – cm, Y: – cm</span>
-      </div>
-    </section>
+    <!-- Status -->
+    <div id="status" class="sts info">Bereit</div>
 
-    <!-- Zeitraum -->
-    <section class="card">
-      <h2>Zeitraum</h2>
-      <div class="date-row">
-        <div class="date-field">
-          <label>Start</label>
-          <input type="date" id="ganttStart">
+    <!-- TABS -->
+    <div class="tabs">
+        <button class="tab active" data-tab="paneTools">Tools</button>
+        <button class="tab" data-tab="paneExtras">Extras</button>
+    </div>
+
+    <!-- ══════════ TAB: Tools ══════════ -->
+    <div id="paneTools" class="pane active">
+
+        <!-- Größe -->
+        <div class="sec">
+            <div class="sec-title">Größe <span class="hint">Klick + | Shift &minus;</span></div>
+            <div class="row">
+                <button id="resizeW"    class="sq grn">W</button>
+                <button id="resizeH"    class="sq grn">H</button>
+                <button id="resizeBoth" class="sq grn">W+H</button>
+                <button id="resizeProp" class="sq grn">Prop</button>
+            </div>
         </div>
-        <div class="date-field">
-          <label>Ende</label>
-          <input type="date" id="ganttEnd">
+
+        <!-- Angleichen -->
+        <div class="sec">
+            <div class="sec-title">Angleichen <span class="hint">Klick Max | Shift Min</span></div>
+            <div class="row">
+                <button id="matchW"    class="sq pur">W</button>
+                <button id="matchH"    class="sq pur">H</button>
+                <button id="matchBoth" class="sq pur">W+H</button>
+                <button id="matchProp" class="sq pur">Prop</button>
+            </div>
         </div>
-      </div>
-      <div class="unit-row">
-        <label>Einheit</label>
-        <select id="ganttUnit">
-          <option value="day">Tage</option>
-          <option value="week" selected>Wochen</option>
-          <option value="month">Monate</option>
-          <option value="quarter">Quartale</option>
-        </select>
-      </div>
-    </section>
 
-    <!-- Layout-Parameter -->
-    <section class="card">
-      <h2>Layout (in RE)</h2>
-      <div class="param-grid">
-        <label>Label-Breite</label>
-        <input type="number" id="ganttLabelW" value="20" min="5" max="50">
-        <label>Header-Höhe</label>
-        <input type="number" id="ganttHeaderH" value="3" min="1" max="10">
-        <label>Zeilen-Höhe</label>
-        <input type="number" id="ganttRowH" value="5" min="2" max="20">
-        <label>Balken-Höhe</label>
-        <input type="number" id="ganttBarH" value="3" min="1" max="15">
-      </div>
-      <div class="width-mode-row">
-        <label>Spaltenbreite</label>
-        <select id="ganttWidthMode">
-          <option value="auto">Auto-Verteilung</option>
-          <option value="fixed">Feste Breite</option>
-        </select>
-      </div>
-      <div id="colWidthDiv" style="display:none">
-        <label>Spalte (RE)</label>
-        <input type="number" id="ganttColW" value="3" min="1" max="20">
-      </div>
-    </section>
+        <!-- Raster & Abstände -->
+        <div class="sec">
+            <div class="sec-title">Raster &amp; Abstände</div>
 
-    <!-- Phasen -->
-    <section class="card">
-      <h2>Phasen</h2>
-      <div id="ganttPhases"></div>
-      <button id="ganttAddPhase" class="btn-add">+ Phase</button>
-    </section>
+            <div class="sub-title">Einrasten</div>
+            <div class="row">
+                <button id="snapPos"  class="sq blu">Pos</button>
+                <button id="snapSize" class="sq blu">Size</button>
+                <button id="snapAll"  class="sq blu">Alles</button>
+                <button id="showInfo" class="sq blu-d">Info</button>
+            </div>
+            <div id="infoBox" class="info-box"></div>
 
-    <!-- Optionen -->
-    <section class="card">
-      <h2>Optionen</h2>
-      <label class="check-row">
-        <input type="checkbox" id="ganttTodayLine" checked>
-        Heute-Linie anzeigen
-      </label>
-    </section>
+            <div class="sub-title">Abstand = 1 RE</div>
+            <div class="row">
+                <button id="spaceH" class="sq amb">H</button>
+                <button id="spaceV" class="sq amb">V</button>
+            </div>
+        </div>
 
-    <!-- Erstellen -->
-    <section class="card">
-      <button id="createGantt" class="btn-primary">GANTT erstellen</button>
-      <div id="status" class="status">Bereit</div>
-    </section>
-  </main>
+        <!-- Grid-Tabelle -->
+        <div class="sec">
+            <div class="sec-title">Grid-Tabelle</div>
+            <div class="row tbl-row">
+                <label class="tbl-lbl">Sp<input id="tCols" class="tbl-in" type="number" min="1" max="15" value="3"></label>
+                <label class="tbl-lbl">Zl<input id="tRows" class="tbl-in" type="number" min="1" max="20" value="3"></label>
+                <label class="tbl-lbl">B<input id="tCW" class="tbl-in" type="number" min="1" value="10"></label>
+                <label class="tbl-lbl">H<input id="tCH" class="tbl-in" type="number" min="1" value="5"></label>
+                <button id="createTable" class="sq blu go-btn">Go</button>
+            </div>
+        </div>
+    </div>
 
-  <script src="taskpane.js"></script>
+    <!-- ══════════ TAB: Extras ══════════ -->
+    <div id="paneExtras" class="pane">
+
+        <!-- Papierformat -->
+        <div class="sec">
+            <div class="sec-title">Papierformat</div>
+            <div class="fmt-info">27,728 &times; 19,297 cm</div>
+            <button id="detectFmt" class="btn-full">&#128270; Format erkennen</button>
+                    </div>
+
+        <!-- Hilfslinien -->
+        <div class="sec">
+            <div class="sec-title">Hilfslinien (Master)</div>
+            <button id="toggleGuides" class="btn-full">Ein-/Ausblenden</button>
+            <div class="guide-info">V: <b>7 RE</b> (links), <b>-6 RE</b> (rechts) &middot; H: <b>5</b>, <b>9</b>, <b>15</b>, <b>17</b>, <b>86 RE</b></div>
+        </div>
+
+        <!-- VBA Grid-Raster -->
+        <div class="sec">
+            <div class="sec-title">PowerPoint-Raster setzen (VBA)</div>
+            <div class="vba-info">Kopiert ein Mac-kompatibles VBA-Macro in die Zwischenablage &ndash; im VBA-Editor (Alt+F11) einf&uuml;gen &amp; ausf&uuml;hren.</div>
+            <div class="row">
+                <button id="copyVBA6" class="btn-full">&#128203; VBA: Raster 6 pt kopieren</button>
+            </div>
+            <div class="row" style="margin-top:4px;">
+                <input id="vbaGridPt" class="re-in" type="number" step="0.1" min="0.1" value="6" style="width:50px;">
+                <span class="lbl">pt</span>
+                <button id="copyVBAcustom" class="sq blu" style="margin-left:6px;">Kopieren</button>
+            </div>
+        </div>
+
+        <!-- Schatten -->
+        <div class="sec">
+            <div class="sec-title">Schatten-Werte</div>
+            <div class="shadow-grid">
+                <div class="shd-item"><span class="shd-lbl">Farbe</span><span class="shd-val">Schwarz</span></div>
+                <div class="shd-item"><span class="shd-lbl">Transparenz</span><span class="shd-val">75 %</span></div>
+                <div class="shd-item"><span class="shd-lbl">Größe</span><span class="shd-val">100 %</span></div>
+                <div class="shd-item"><span class="shd-lbl">Weichzeichnen</span><span class="shd-val">4 pt</span></div>
+                <div class="shd-item"><span class="shd-lbl">Winkel</span><span class="shd-val">90°</span></div>
+                <div class="shd-item"><span class="shd-lbl">Abstand</span><span class="shd-val">1 pt</span></div>
+            </div>
+            <button id="copyShadow" class="btn-full">Werte kopieren</button>
+        </div>
+    </div>
+
+</div>
+<script src="taskpane.js"></script>
 </body>
 </html>
