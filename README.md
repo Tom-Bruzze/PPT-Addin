@@ -1,4 +1,21 @@
-# GANTT Generator – DROEGE GROUP v21.2
+# GANTT Generator – DROEGE GROUP v21.3
+
+## Änderungen v21.3 (basierend auf v21.2)
+
+### 1. Spalten-Rechtecke statt Trennlinien
+- **Vertikale Trennlinien entfernt** (`addLine` → `addGeometricShape`)
+- Stattdessen: **Transparente Rahmen-Rechtecke** je Zeiteinheit (Monat/KW/Tag)
+- Breite = Spaltenbreite der gewählten Zeiteinheit
+- Höhe = gesamte GANTT-Höhe über alle Phasen
+- **Füllung:** transparent (`fill.transparency = 1`)
+- **Rahmen:** dezent grau (`#C0C0C0`, Stärke: `LINE_WEIGHT`)
+- Vorteil: Kein Schiefwerden, saubere Skalierung beim Breiterziehen
+
+### 2. Heute-Linie Fix
+- `width: 0` → `width: 0.01` verhindert Auto-Routing/Schiefwerden
+
+### 3. Datumsfelder schmaler
+- Phasen-Datumsfelder (Von/Bis) von `105px` auf `86px` reduziert (~0,5 cm schmaler)
 
 ## Änderungen v21.2
 ### 1. Auto-Verteilung: Dynamische Positionierung
@@ -8,23 +25,32 @@
 - Funktioniert für alle Bildschirmformate (Breitbild, Standard, A4 etc.)
 - Rechter Rand: immer mindestens 6 RE Platz zum Folienrand
 
-### 2. Echte Linien statt Rechtecke
-- **Vertikale Trennlinien** werden jetzt als echte PowerPoint-Linien (`addLine`) erzeugt
-- **Heute-Linie** ebenfalls als echte Linie
-- Vorteil: Linien lassen sich nachträglich leicht in Länge/Position anpassen
-- Farbe Trennlinien: #C0C0C0, Stärke: 0.5 pt
+### 2. Echte Linien statt Rechtecke (v21.2)
+- Heute-Linie als echte PowerPoint-Linie (`addLine`)
 - Farbe Heute-Linie: #FF0000, Stärke: 1.5 pt
 
 ### 3. Phasendefinition einzeilig
 - Felder Phase | Start | Ende | Farbe | × jetzt in einer Zeile
 - Kompaktere Darstellung, kein Umbruch mehr
 
+## Layout-Konzept (v21.3)
+```
+┌──────┬──Jan──┬──Feb──┬──Mär──┬──Apr──┐
+│      │┌─────┐│┌─────┐│┌─────┐│┌─────┐│
+│Phase1││     │││█████ │││     │││     ││
+│      │└─────┘│└─────┘│└─────┘│└─────┘│
+│Phase2││     │││     │││██████│││█████ ││
+│      │└─────┘│└─────┘│└─────┘│└─────┘│
+└──────┴───────┴───────┴───────┴───────┘
+         ↑ Transparente Rahmen-Rechtecke
+```
+
 ## Dateien
 | Datei | Beschreibung |
 |-------|-------------|
 | `taskpane.html` | Benutzeroberfläche |
-| `taskpane.js` | Kernlogik (v21.2) |
-| `taskpane.css` | Styling (v21.2) |
+| `taskpane.js` | Kernlogik (v21.3) |
+| `taskpane.css` | Styling (v21.3) |
 | `manifest-PPT-Addin.xml` | Office Add-in Manifest |
 | `README.md` | Diese Datei |
 
